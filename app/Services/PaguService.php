@@ -1,0 +1,88 @@
+<?php
+
+namespace App\Services;
+
+use App\Exceptions\PaguTidakCukupException;
+use App\Models\AnggaranRekening;
+use App\Models\Spj;
+use App\Support\Uang;
+use Illuminate\Support\Facades\DB;
+use LogicException;
+
+/**
+ * Satu-satunya tempat yang boleh mengubah anggaran_rekening.reserved dan realisasi_final.
+ * Setiap perubahan mengunci baris rekening (lockForUpdate) di dalam transaksi, sehingga dua SPJ
+ * yang diajukan bersamaan ke rekening yang sama tidak bisa sama-sama lolos melebihi pagu.
+ *
+ * sisa = pagu - realisasi_final - reserved
+ */
+class PaguService
+{
+    /** Sisa pagu (sen) tanpa mengunci; untuk tampilan. */
+    public function sisaSen(AnggaranRekening $ar): int
+    {
+        return Uang::sen($ar->pagu) - Uang::sen($ar->realisasi_final) - Uang::sen($ar->reserved);
+    }
+
+    /** Tahan pagu sebesar total SPJ (saat diajukan). Melempar PaguTidakCukupException bila sisa tidak cukup. */
+    public function reserve(Spj $spj): void
+    {
+        $this->ubah($spj, function (int $pagu, int $final, int $reserved, int $total) {
+            $sisa = $pagu - $final - $reserved;
+            if ($total > $sisa) {
+                throw new PaguTidakCukupException($sisa, $total);
+            }
+
+            return [$final, $reserved + $total];
+        });
+    }
+
+    /** Lepas pagu yang ditahan (SPJ ditolak, dikembalikan, atau dibatalkan sebelum final). */
+    public function release(Spj $spj): void
+    {
+        $this->ubah($spj, function (int $pagu, int $final, int $reserved, int $total) {
+            $this->pastikan($reserved >= $total, 'Pagu yang ditahan lebih kecil dari total SPJ.');
+
+            return [$final, $reserved - $total];
+        });
+    }
+
+    /** SPJ final: pindahkan dari reserved ke realisasi_final. */
+    public function realisasi(Spj $spj): void
+    {
+        $this->ubah($spj, function (int $pagu, int $final, int $reserved, int $total) {
+            $this->pastikan($reserved >= $total, 'Pagu yang ditahan lebih kecil dari total SPJ.');
+
+            return [$final + $total, $reserved - $total];
+        });
+    }
+
+    /** SPJ final dibatalkan: kurangi realisasi_final. */
+    public function batalkanRealisasi(Spj $spj): void
+    {
+        $this->ubah($spj, function (int $pagu, int $final, int $reserved, int $total) {
+            $this->pastikan($final >= $total, 'Realisasi lebih kecil dari total SPJ.');
+
+            return [$final - $total, $reserved];
+        });
+    }
+
+    /** @param callable(int,int,int,int): array{0:int,1:int} $hitung menerima pagu, final, reserved, total (sen); mengembalikan [final, reserved] baru */
+    private function ubah(Spj $spj, callable $hitung): void
+    {
+        DB::transaction(function () use ($spj, $hitung) {
+            $ar = AnggaranRekening::withoutGlobalScopes()->lockForUpdate()->findOrFail($spj->anggaran_rekening_id);
+            [$final, $reserved] = $hitung(
+                Uang::sen($ar->pagu), Uang::sen($ar->realisasi_final), Uang::sen($ar->reserved), Uang::sen($spj->total)
+            );
+            $ar->update(['realisasi_final' => Uang::format($final), 'reserved' => Uang::format($reserved)]);
+        });
+    }
+
+    private function pastikan(bool $kondisi, string $pesan): void
+    {
+        if (! $kondisi) {
+            throw new LogicException('Data pagu tidak konsisten: ' . $pesan . ' Jalankan rekonsiliasi pagu.');
+        }
+    }
+}

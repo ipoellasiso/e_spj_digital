@@ -1,0 +1,296 @@
+/* Tema e-SPJ: hijau dan kuning di atas Bootstrap 5.3. Dipakai layout dan halaman masuk. */
+:root {
+    --hutan: #123d27; /* hijau tua: sidebar, judul */
+    --hutan-2: #1a4d33;
+    --daun: #1f7a3f; /* hijau utama: tombol, realisasi final */
+    --daun-tua: #176334;
+    --daun-muda: #e4f1e7;
+    --kuning: #f5c518; /* kuning: penanda aktif, SPJ dalam proses, tombol aksi utama */
+    --kuning-muda: #fff3bf;
+    --kertas: #f3f6f1; /* latar halaman (putih kehijauan, bukan krem) */
+    --tinta: #14231a;
+    --redam: #5b6b60;
+    --garis: #dce4da;
+    --bata: #b4412f;
+
+    --bs-font-sans-serif:
+        "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --bs-body-font-family: var(--bs-font-sans-serif);
+    --bs-body-bg: var(--kertas);
+    --bs-body-color: var(--tinta);
+    --bs-border-color: var(--garis);
+    --bs-primary: var(--daun);
+    --bs-primary-rgb: 31, 122, 63;
+    --bs-link-color: var(--daun-tua);
+    --bs-link-hover-color: var(--hutan);
+    --bs-link-color-rgb: 23, 99, 52;
+    --bs-offcanvas-width: 280px;
+    --bs-offcanvas-bg: var(--hutan);
+    --bs-offcanvas-color: #fff;
+}
+body {
+    font-size: 0.94rem;
+}
+.angka {
+    font-variant-numeric: tabular-nums;
+}
+:focus-visible {
+    outline: 3px solid var(--kuning);
+    outline-offset: 2px;
+}
+
+.btn-primary {
+    --bs-btn-bg: var(--daun);
+    --bs-btn-border-color: var(--daun);
+    --bs-btn-hover-bg: var(--daun-tua);
+    --bs-btn-hover-border-color: var(--daun-tua);
+    --bs-btn-active-bg: #134f29;
+    --bs-btn-active-border-color: #134f29;
+    --bs-btn-focus-shadow-rgb: 31, 122, 63;
+}
+.btn-kuning {
+    --bs-btn-color: var(--hutan);
+    --bs-btn-bg: var(--kuning);
+    --bs-btn-border-color: var(--kuning);
+    --bs-btn-hover-color: var(--hutan);
+    --bs-btn-hover-bg: #e5b70d;
+    --bs-btn-hover-border-color: #e5b70d;
+    --bs-btn-active-color: var(--hutan);
+    --bs-btn-active-bg: #d4a800;
+    --bs-btn-active-border-color: #d4a800;
+    font-weight: 600;
+}
+.btn-outline-daun {
+    --bs-btn-color: var(--daun-tua);
+    --bs-btn-border-color: var(--daun);
+    --bs-btn-hover-bg: var(--daun);
+    --bs-btn-hover-border-color: var(--daun);
+    --bs-btn-hover-color: #fff;
+}
+
+/* Sidebar */
+.app-shell {
+    display: flex;
+    min-height: 100vh;
+}
+.sidebar {
+    color: #cfe3d4;
+}
+.sidebar .brand {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1.25rem 1.25rem 1rem;
+    color: #fff;
+    text-decoration: none;
+}
+.sidebar .brand-mark {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: var(--kuning);
+    color: var(--hutan);
+    display: grid;
+    place-items: center;
+    font-size: 1.3rem;
+    flex: none;
+}
+.sidebar .brand small {
+    display: block;
+    color: #9ec2a8;
+    font-size: 0.76rem;
+    line-height: 1.2;
+}
+.sidebar .brand strong {
+    font-size: 1.02rem;
+}
+.nav-grup {
+    padding: 1.1rem 1.25rem 0.35rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #8fb59b;
+}
+.nav-tautan {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.55rem 1.25rem 0.55rem 1.1rem;
+    color: #cfe3d4;
+    text-decoration: none;
+    border-left: 4px solid transparent;
+}
+.nav-tautan:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: #fff;
+}
+.nav-tautan.active {
+    background: rgba(255, 255, 255, 0.09);
+    color: #fff;
+    border-left-color: var(--kuning);
+    font-weight: 600;
+}
+.nav-tautan .bi {
+    font-size: 1.05rem;
+    width: 1.2rem;
+    text-align: center;
+}
+.nav-tautan .jumlah {
+    margin-left: auto;
+    background: var(--kuning);
+    color: var(--hutan);
+    font-weight: 700;
+    font-size: 0.76rem;
+    padding: 0.1rem 0.5rem;
+    border-radius: 999px;
+}
+@media (min-width: 992px) {
+    /* !important diperlukan: .offcanvas-lg milik Bootstrap memaksa background transparan dan tinggi auto di layar lebar */
+    .sidebar {
+        position: sticky !important;
+        top: 0;
+        height: 100vh !important;
+        width: 264px !important;
+        flex: 0 0 264px;
+        overflow-y: auto;
+        background: var(--hutan) !important;
+    }
+}
+
+/* Topbar dan konten */
+.app-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+.topbar {
+    background: #fff;
+    border-bottom: 1px solid var(--garis);
+    padding: 0.65rem 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    position: sticky;
+    top: 0;
+    z-index: 1020;
+}
+.konteks {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+.konteks .chip {
+    border: 1px solid var(--garis);
+    border-radius: 999px;
+    padding: 0.2rem 0.7rem;
+    font-size: 0.82rem;
+    color: var(--redam);
+    background: var(--kertas);
+}
+.konteks .chip b {
+    color: var(--tinta);
+    font-weight: 600;
+}
+.avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: var(--daun-muda);
+    color: var(--daun-tua);
+    font-weight: 700;
+    display: grid;
+    place-items: center;
+    font-size: 0.85rem;
+}
+.konten {
+    padding: 1.5rem 1.25rem 2.5rem;
+    flex: 1;
+}
+@media (min-width: 992px) {
+    .konten {
+        padding: 1.75rem 2rem 3rem;
+    }
+    .topbar {
+        padding: 0.65rem 2rem;
+    }
+}
+
+/* Panel dan tabel */
+.panel {
+    background: #fff;
+    border: 1px solid var(--garis);
+    border-radius: 12px;
+}
+.panel-kepala {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--garis);
+}
+.panel-kepala h2 {
+    font-size: 1.02rem;
+    font-weight: 700;
+    margin: 0;
+    color: var(--hutan);
+}
+.tabel {
+    margin: 0;
+}
+.tabel th {
+    font-weight: 600;
+    color: var(--redam);
+    font-size: 0.82rem;
+    background: transparent;
+    border-bottom-color: var(--garis);
+    white-space: nowrap;
+}
+.tabel td {
+    vertical-align: middle;
+    border-bottom-color: #edf1eb;
+}
+.tabel tr:last-child td {
+    border-bottom: 0;
+}
+
+/* Status SPJ */
+.st {
+    display: inline-block;
+    padding: 0.15rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.st-draft {
+    background: #eceeea;
+    color: #4b564e;
+}
+.st-diajukan {
+    background: var(--kuning-muda);
+    color: #6b5200;
+}
+.st-verif {
+    background: var(--daun-muda);
+    color: var(--daun-tua);
+}
+.st-final {
+    background: var(--daun);
+    color: #fff;
+}
+.st-kembali {
+    background: #f8e2dd;
+    color: var(--bata);
+}
+.st-batal {
+    background: #eceeea;
+    color: #6b746d;
+    text-decoration: line-through;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    * {
+        transition: none !important;
+    }
+}
