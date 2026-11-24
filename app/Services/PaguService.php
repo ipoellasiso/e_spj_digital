@@ -19,9 +19,20 @@ use LogicException;
 class PaguService
 {
     /** Sisa pagu (sen) tanpa mengunci; untuk tampilan. */
-    public function sisaSen(AnggaranRekening $ar): int
-    {
-        return Uang::sen($ar->pagu) - Uang::sen($ar->realisasi_final) - Uang::sen($ar->reserved);
+    // public function sisaSen(AnggaranRekening $ar): int
+    // {
+    //     return Uang::sen($ar->pagu) - Uang::sen($ar->realisasi_final) - Uang::sen($ar->reserved);
+    // }
+    public function sisaSen(AnggaranRekening $ar, ?int $kecualiSpjId = null) {
+        $reserved = Uang::sen($ar->reserved);
+        if ($kecualiSpjId) {
+            // Kurangi reserved dengan total SPJ yang sedang diverifikasi
+            $spj = Spj::find($kecualiSpjId);
+            if ($spj) {
+                $reserved -= Uang::sen($spj->total);
+            }
+        }
+        return Uang::sen($ar->pagu) - Uang::sen($ar->realisasi_final) - $reserved;
     }
 
     /** Tahan pagu sebesar total SPJ (saat diajukan). Melempar PaguTidakCukupException bila sisa tidak cukup. */

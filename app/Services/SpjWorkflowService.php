@@ -122,14 +122,14 @@ class SpjWorkflowService
 
             $final = $t['maju'] === SpjStatus::Final;
             
+            // HANYA saat Final (PA setuju), ubah reserved menjadi realisasi_final
             if ($final) {
-                // Jika sudah final, pindahkan dari reserved ke realisasi_final
                 $this->pagu->realisasi($s); 
-            } elseif ($s->status->value === 'diajukan') {
-                // HANYA tahan pagu saat pertama kali diajukan (dari Bendahara ke PPK)
-                $this->pagu->reserve($s);
             }
             
+            // Hapus blok "elseif ($s->status->value === 'diajukan') { $this->pagu->reserve($s); }"
+            // Karena pagu sudah ditahan dari awal di SpjService::ajukan()
+
             $s->status = $t['maju'];
             $s->save();
 
