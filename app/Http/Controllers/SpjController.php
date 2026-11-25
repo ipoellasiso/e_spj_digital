@@ -276,12 +276,18 @@ class SpjController extends Controller
             'items.*.volume' => ['required', 'string', 'max:20'],
             'items.*.satuan' => ['required', 'string', 'max:30'],
             'items.*.harga_satuan' => ['required', 'string', 'max:30'],
-            'jenis_pengeluaran' => ['required', Rule::in(['pihak_ketiga', 'honor', 'gaji', 'belanja_modal'])],
+            'items.*.jabatan' => ['nullable', 'string', 'max:255'],
+            'items.*.nama_bank' => ['nullable', 'string', 'max:100'],
+            'items.*.no_rekening' => ['nullable', 'string', 'max:50'],
+            'items.*.pajak' => ['nullable', 'string', 'max:30'],
+            // 'jenis_pengeluaran' => ['required', Rule::in(['pihak_ketiga', 'honor', 'gaji', 'belanja_modal'])],
+            'kategori' => ['required', Rule::in(array_keys(Spj::KATEGORI))],
         ];
         $atribut = [
             'jenis' => 'Jenis', 'tanggal' => 'Tanggal', 'anggaran_rekening_id' => 'Rekening belanja', 'sumber_dana_id' => 'Sumber dana',
             'uraian' => 'Uraian pekerjaan', 'penyedia_id' => 'Penyedia', 'items' => 'Item belanja',
             'items.*.uraian' => 'Uraian item', 'items.*.volume' => 'Volume', 'items.*.satuan' => 'Satuan', 'items.*.harga_satuan' => 'Harga satuan',
+            'kategori' => 'Jenis belanja',
         ];
         foreach (Spj::PEJABAT as $kolom => [$label, $jabatan]) {
             $aturan[$kolom] = ['nullable', Rule::exists('pejabat_opd', 'id')->where('opd_id', $opdId)->whereIn('jabatan', $jabatan)];

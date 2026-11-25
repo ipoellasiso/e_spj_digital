@@ -25,6 +25,13 @@ class AnggaranRekening extends Model
         return $this->belongsTo(Rekening::class);
     }
 
+    public function dpaVersi(): BelongsTo
+    {
+        // Sesuaikan nama Model dan foreign key-nya dengan struktur database kamu
+        // Contoh: Jika tabel anggaran_rekening punya kolom 'dpa_versi_id'
+        return $this->belongsTo(DpaVersi::class, 'dpa_versi_id');
+    }
+
     /** Sisa pagu = pagu - realisasi final - reserved (SPJ yang sedang berproses). */
     public function getSisaAttribute(): string
     {

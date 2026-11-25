@@ -11,6 +11,8 @@ use App\Http\Controllers\PenggunaController;
 use App\Http\Controllers\PptkController;
 use App\Http\Controllers\SkPenunjukanController;
 use App\Http\Controllers\SpjAntrianController;
+use App\Http\Controllers\SpjDokumenController;
+use App\Http\Controllers\SpjPenerimaController;
 use App\Http\Controllers\SpjProsesController;
 use App\Http\Middleware\PeranDiizinkan;
 use Illuminate\Support\Facades\Route;
@@ -51,10 +53,27 @@ Route::middleware('auth')->group(function () {
             Route::get('/antrian', [SpjAntrianController::class, 'index'])->name('antrian');
             Route::get('/antrian/data', [SpjAntrianController::class, 'data'])->name('antrian.data');
         });
+
+        Route::get('spj/{spj}/dokumen/semua', [SpjDokumenController::class, 'semua'])->name('dokumen.semua');
+        Route::post('spj/{spj}/dokumen/pemeriksaan', [SpjDokumenController::class, 'pemeriksaan'])
+            ->middleware(PeranDiizinkan::class . ':bendahara,pptk,ppk_skpd')->name('dokumen.pemeriksaan');
+        Route::get('spj/{spj}/dokumen/{jenis}', [SpjDokumenController::class, 'satu'])->name('dokumen');
         // ---------------------------------------------------------
 
         // Hanya bendahara dan pptk yang bisa buat/edit
+        // Route::middleware(PeranDiizinkan::class . ':superadmin,bendahara,pptk')->group(function () {
+        //     Route::get('spj/penerima/templat', [SpjPenerimaController::class, 'templat'])->name('spj.penerima.templat');
+        //     Route::post('spj/penerima/impor', [SpjPenerimaController::class, 'impor'])->name('spj.penerima.impor');
+        //     Route::get('/baru', [\App\Http\Controllers\SpjController::class, 'create'])->name('create');
+        //     Route::post('/', [\App\Http\Controllers\SpjController::class, 'store'])->name('store');
+        //     Route::get('/{spj}/ubah', [\App\Http\Controllers\SpjController::class, 'edit'])->name('edit');
+        //     Route::put('/{spj}', [\App\Http\Controllers\SpjController::class, 'update'])->name('update');
+        //     Route::delete('/{spj}', [\App\Http\Controllers\SpjController::class, 'destroy'])->name('destroy');
+        // });
+
         Route::middleware(PeranDiizinkan::class . ':superadmin,bendahara,pptk')->group(function () {
+            Route::get('/penerima/templat', [\App\Http\Controllers\SpjPenerimaController::class, 'templat'])->name('penerima.templat');
+            Route::post('/penerima/impor', [\App\Http\Controllers\SpjPenerimaController::class, 'impor'])->name('penerima.impor');
             Route::get('/baru', [\App\Http\Controllers\SpjController::class, 'create'])->name('create');
             Route::post('/', [\App\Http\Controllers\SpjController::class, 'store'])->name('store');
             Route::get('/{spj}/ubah', [\App\Http\Controllers\SpjController::class, 'edit'])->name('edit');
@@ -68,6 +87,8 @@ Route::middleware('auth')->group(function () {
 
         Route::get('/{spj}/cetak', [\App\Http\Controllers\SpjController::class, 'cetak'])->name('cetak');
     });
+
+    
 
     // Hapus route antrian yang lama di bawah sini
     // Route::middleware(PeranDiizinkan::class . ':bendahara,ppk_skpd,pa')->group(function () {
