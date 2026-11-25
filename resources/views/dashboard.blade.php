@@ -232,10 +232,91 @@
         transform: translateY(-3px) scale(1.02);
         box-shadow: 0 10px 25px rgba(16, 185, 129, 0.5); color: #fff;
     }
+
+    /* ===== BANNER NOTIFIKASI VERIFIKASI (Sticky) ===== */
+    .alert-verifikasi {
+        position: sticky;
+        top: 84px; /* Jarak dari topbar */
+        z-index: 1000;
+        margin: -12px -12px 24px -12px; /* Menyesuaikan dengan margin dashboard-wrapper */
+        padding: 16px 24px;
+        background: linear-gradient(90deg, #fff7ed, #ffedd5);
+        border: 1px solid #fdba74;
+        border-left: 6px solid #f97316;
+        border-radius: 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 10px 25px -10px rgba(249, 115, 22, 0.3);
+        animation: slideDown 0.5s ease-out;
+        backdrop-filter: blur(10px);
+    }
+    @keyframes slideDown {
+        from { opacity: 0; transform: translateY(-20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .alert-verifikasi-konten {
+        display: flex; align-items: center; gap: 16px;
+    }
+    .alert-verifikasi-icon {
+        width: 48px; height: 48px; border-radius: 50%;
+        background: #ffedd5; color: #ea580c; font-size: 24px;
+        display: grid; place-items: center;
+        animation: pulse-ring-orange 2s infinite;
+    }
+    @keyframes pulse-ring-orange {
+        0% { box-shadow: 0 0 0 0 rgba(234, 88, 12, 0.4); }
+        70% { box-shadow: 0 0 0 12px rgba(234, 88, 12, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(234, 88, 12, 0); }
+    }
+    .alert-verifikasi-teks {
+        display: flex; flex-direction: column;
+    }
+    .alert-verifikasi-teks strong {
+        font-size: 16px; color: #9a3412; margin-bottom: 2px;
+    }
+    .alert-verifikasi-teks span {
+        font-size: 13.5px; color: #c2410c; font-weight: 500;
+    }
+    .btn-verifikasi {
+        background: linear-gradient(135deg, #f97316, #ea580c);
+        color: #fff; text-decoration: none; font-weight: 700; font-size: 14px;
+        padding: 10px 20px; border-radius: 10px; white-space: nowrap;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 12px rgba(234, 88, 12, 0.3);
+    }
+    .btn-verifikasi:hover {
+        background: linear-gradient(135deg, #ea580c, #c2410c);
+        color: #fff; transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(234, 88, 12, 0.5);
+    }
 </style>
 @endpush
 
 @section('content')
+    {{-- BANNER NOTIFIKASI SUPERADMIN (Sticky) --}}
+    @if(auth()->user()->hasRole('superadmin'))
+        @php
+            $tagihanMenungguVerifikasi = \App\Models\Tagihan::where('status', 'unpaid')->whereNotNull('bukti_transfer')->count();
+        @endphp
+        @if($tagihanMenungguVerifikasi > 0)
+            <div class="alert-verifikasi animate-up">
+                <div class="alert-verifikasi-konten">
+                    <div class="alert-verifikasi-icon">
+                        <i class="bi bi-bell-fill"></i>
+                    </div>
+                    <div class="alert-verifikasi-teks">
+                        <strong>Ada Tagihan Baru!</strong>
+                        <span>Terdapat <b>{{ $tagihanMenungguVerifikasi }} bukti transfer</b> dari OPD yang menunggu verifikasi Anda.</span>
+                    </div>
+                </div>
+                <a href="{{ route('superadmin.tagihan.index') }}" class="btn-verifikasi">
+                    Verifikasi Sekarang <i class="bi bi-arrow-right ms-1"></i>
+                </a>
+            </div>
+        @endif
+    @endif
+
     <div class="dashboard-wrapper">
         <div class="dashboard-content">
             {{-- Header Halaman --}}

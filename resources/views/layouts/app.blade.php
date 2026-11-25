@@ -195,9 +195,28 @@
                 @hasanyrole('superadmin|admin')
                     <a class="nav-tautan {{ $nav === 'pengguna' ? 'active' : '' }}" href="{{ route('pengguna.index') }}" data-tooltip="Pengguna"><i class="bi bi-people"></i><span>Pengguna</span></a>
                 @endhasanyrole
-                <a class="nav-tautan {{ $nav === 'periode' ? 'active' : '' }}" href="#" data-tooltip="Kunci periode"><i class="bi bi-lock"></i><span>Kunci periode</span></a>
+                
+                {{-- TAMBAHKAN MENU INI --}}
+                @role('superadmin')
+                    <a class="nav-tautan {{ $nav === 'superadmin-tagihan' ? 'active' : '' }}" href="{{ route('superadmin.tagihan.index') }}" data-tooltip="Verifikasi Tagihan">
+                        <i class="bi bi-receipt"></i><span>Verifikasi Tagihan</span>
+                    </a>
+                @endrole
+                
+                @role('superadmin')
+                    <a class="nav-tautan {{ $nav === 'superadmin-paket' ? 'active' : '' }}" href="{{ route('superadmin.paket.index') }}" data-tooltip="Manajemen Paket">
+                        <i class="bi bi-box-seam"></i><span>Manajemen Paket</span>
+                    </a>
+                    <a class="nav-tautan {{ $nav === 'periode' ? 'active' : '' }}" href="#" data-tooltip="Kunci periode"><i class="bi bi-lock"></i><span>Kunci periode</span></a>
+                @endrole
+
                 @hasanyrole('superadmin|admin')
                     <a class="nav-tautan {{ $nav === 'log' ? 'active' : '' }}" href="#" data-tooltip="Log aktivitas"><i class="bi bi-clock-history"></i><span>Log aktivitas</span></a>
+                @endhasanyrole
+                @hasanyrole('superadmin|admin|bendahara')
+                    <a class="nav-tautan {{ $nav === 'billing' ? 'active' : '' }}" href="{{ route('billing.index') }}" data-tooltip="Langganan & Tagihan">
+                        <i class="bi bi-credit-card"></i><span>Langganan & Tagihan</span>
+                    </a>
                 @endhasanyrole
             @endhasanyrole
         </nav>

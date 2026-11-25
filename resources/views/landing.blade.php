@@ -270,7 +270,12 @@
                 <div class="brand-logo"><i class="bi bi-receipt-cutoff"></i></div>
                 <span class="fw-bolder fs-3 text-dark" style="letter-spacing: -1px;">e-SPJ <span class="text-gradient-animated">Publik</span></span>
             </a>
-            <div class="ms-auto">
+            
+            {{-- Bungkus tombol dengan d-flex agar rapi --}}
+            <div class="ms-auto d-flex align-items-center gap-2 gap-md-3">
+                <a href="{{ route('register') }}" class="btn btn-outline-success fw-bold d-none d-md-inline-flex" style="border-radius: 10px; padding: 10px 20px; border-width: 2px;">
+                    Daftar OPD Baru
+                </a>
                 <a href="{{ route('login') }}" class="btn-login-top">
                     <i class="bi bi-box-arrow-in-right"></i> Masuk ke Sistem
                 </a>

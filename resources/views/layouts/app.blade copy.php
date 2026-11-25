@@ -12,9 +12,116 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="{{ asset('css/tema-spj.css') }}" rel="stylesheet">
+    
+    <style>
+        /* ===== Premium Page Loader ===== */
+        #page-loader {
+            position: fixed;
+            inset: 0;
+            background: var(--bg-body, #f6f8f7);
+            z-index: 99999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.5s ease, visibility 0.5s ease;
+            opacity: 0;
+            visibility: hidden;
+        }
+        
+        /* Sesuaikan warna latar jika tema gelap */
+        [data-tema="gelap"] #page-loader {
+            background: var(--bg-body, #0b1220);
+        }
+
+        #page-loader.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Animasi Logo */
+        .loader-logo {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            border-radius: 20px;
+            background: linear-gradient(135deg, var(--hijau-900, #064e3b), var(--hijau-700, #047857));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--kuning-400, #facc15);
+            font-size: 2.5rem;
+            box-shadow: 0 15px 35px -10px rgba(6, 78, 59, 0.5);
+            animation: pulse-logo 1.8s ease-in-out infinite;
+            margin-bottom: 2rem;
+            z-index: 2;
+        }
+
+        /* Efek gelombang/ripple di belakang logo */
+        .loader-logo::before, .loader-logo::after {
+            content: '';
+            position: absolute;
+            inset: -10px;
+            border-radius: 26px;
+            border: 2px solid var(--kuning-400, #facc15);
+            opacity: 0;
+            animation: ripple 2.5s cubic-bezier(0.22, 0.61, 0.36, 1) infinite;
+            z-index: -1;
+        }
+        .loader-logo::after {
+            animation-delay: 1.25s;
+            border-color: var(--hijau-500, #10b981);
+        }
+
+        /* Teks Loading */
+        .loader-text {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-weight: 800;
+            font-size: 1.35rem;
+            color: var(--hijau-900, #064e3b);
+            letter-spacing: 0.05em;
+            animation: fade-pulse 1.8s ease-in-out infinite;
+        }
+        [data-tema="gelap"] .loader-text {
+            color: #ecfdf5;
+        }
+
+        .loader-subtext {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 0.9rem;
+            color: var(--text-secondary, #64748b);
+            margin-top: 0.5rem;
+            font-weight: 500;
+        }
+
+        /* Keyframes */
+        @keyframes pulse-logo {
+            0%, 100% { transform: scale(1); box-shadow: 0 15px 35px -10px rgba(6, 78, 59, 0.5); }
+            50% { transform: scale(1.05); box-shadow: 0 25px 45px -10px rgba(6, 78, 59, 0.7); }
+        }
+        @keyframes ripple {
+            0% { transform: scale(1); opacity: 0.8; }
+            100% { transform: scale(1.6); opacity: 0; }
+        }
+        @keyframes fade-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+
     @stack('styles')
 </head>
 <body>
+    
+    {{-- PAGE LOADER --}}
+    <div id="page-loader">
+        <div class="loader-logo">
+            <i class="bi bi-receipt-cutoff"></i>
+        </div>
+        <div class="loader-text">Memuat Data...</div>
+        <div class="loader-subtext">Mohon tunggu sebentar</div>
+    </div>
+
 @php($nav = trim($__env->yieldContent('nav')))
 <div class="app-shell" id="appShell">
 
@@ -88,9 +195,28 @@
                 @hasanyrole('superadmin|admin')
                     <a class="nav-tautan {{ $nav === 'pengguna' ? 'active' : '' }}" href="{{ route('pengguna.index') }}" data-tooltip="Pengguna"><i class="bi bi-people"></i><span>Pengguna</span></a>
                 @endhasanyrole
-                <a class="nav-tautan {{ $nav === 'periode' ? 'active' : '' }}" href="#" data-tooltip="Kunci periode"><i class="bi bi-lock"></i><span>Kunci periode</span></a>
+                
+                {{-- TAMBAHKAN MENU INI --}}
+                @role('superadmin')
+                    <a class="nav-tautan {{ $nav === 'superadmin-tagihan' ? 'active' : '' }}" href="{{ route('superadmin.tagihan.index') }}" data-tooltip="Verifikasi Tagihan">
+                        <i class="bi bi-receipt"></i><span>Verifikasi Tagihan</span>
+                    </a>
+                @endrole
+                
+                @role('superadmin')
+                    <a class="nav-tautan {{ $nav === 'superadmin-paket' ? 'active' : '' }}" href="{{ route('superadmin.paket.index') }}" data-tooltip="Manajemen Paket">
+                        <i class="bi bi-box-seam"></i><span>Manajemen Paket</span>
+                    </a>
+                    <a class="nav-tautan {{ $nav === 'periode' ? 'active' : '' }}" href="#" data-tooltip="Kunci periode"><i class="bi bi-lock"></i><span>Kunci periode</span></a>
+                @endrole
+
                 @hasanyrole('superadmin|admin')
                     <a class="nav-tautan {{ $nav === 'log' ? 'active' : '' }}" href="#" data-tooltip="Log aktivitas"><i class="bi bi-clock-history"></i><span>Log aktivitas</span></a>
+                @endhasanyrole
+                @hasanyrole('superadmin|admin|bendahara')
+                    <a class="nav-tautan {{ $nav === 'billing' ? 'active' : '' }}" href="{{ route('billing.index') }}" data-tooltip="Langganan & Tagihan">
+                        <i class="bi bi-credit-card"></i><span>Langganan & Tagihan</span>
+                    </a>
                 @endhasanyrole
             @endhasanyrole
         </nav>
@@ -200,6 +326,28 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
+    // ---------- Page Loader Logic ----------
+    (function() {
+        const loader = document.getElementById('page-loader');
+
+        // 1. Sembunyikan loader saat halaman selesai dimuat
+        window.addEventListener('load', function() {
+            loader.classList.remove('show');
+        });
+
+        // 2. Tampilkan loader saat pindah halaman (klik link atau submit form)
+        window.addEventListener('beforeunload', function() {
+            loader.classList.add('show');
+        });
+
+        // 3. Handle navigasi Back/Forward browser agar loader tidak macet
+        window.addEventListener('pageshow', function(event) {
+            if (event.persisted) {
+                loader.classList.remove('show');
+            }
+        });
+    })();
+
     // ---------- Toggle Tema ----------
     (function () {
         const html = document.documentElement;
