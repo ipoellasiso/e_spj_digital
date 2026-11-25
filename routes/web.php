@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DpaController;
 use App\Http\Controllers\DpaImportController;
+use App\Http\Controllers\LandingPageController;
 use App\Http\Controllers\OpdController;
 use App\Http\Controllers\PejabatController;
 use App\Http\Controllers\PenyediaController;
@@ -17,7 +18,9 @@ use App\Http\Controllers\SpjProsesController;
 use App\Http\Middleware\PeranDiizinkan;
 use Illuminate\Support\Facades\Route;
 
-Route::redirect('/', '/beranda');
+// Route::redirect('/', '/beranda');
+// Route untuk halaman depan (bisa diakses publik)
+Route::get('/', [LandingPageController::class, 'index'])->name('landing');
 
 Route::middleware('guest')->group(function () {
     Route::get('/masuk', [LoginController::class, 'form'])->name('login');
