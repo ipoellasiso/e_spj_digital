@@ -19,6 +19,7 @@ class SuperadminPaketController extends Controller
         $request->validate([
             'nama' => 'required|string',
             'harga_bulanan' => 'required|numeric',
+            'harga_tahunan' => 'nullable|numeric',
             'fitur' => 'required|string', // Input teks pisah koma
             'is_populer' => 'boolean'
         ]);
@@ -29,6 +30,7 @@ class SuperadminPaketController extends Controller
         Paket::create([
             'nama' => $request->nama,
             'harga_bulanan' => $request->harga_bulanan,
+            'harga_tahunan' => $request->harga_tahunan,
             'fitur' => $fiturArray,
             'is_populer' => $request->has('is_populer'),
         ]);
@@ -36,22 +38,27 @@ class SuperadminPaketController extends Controller
         return back()->with('sukses', 'Paket berhasil ditambahkan.');
     }
 
-    public function buatTagihan(Request $request)
+        public function buatTagihan(Request $request)
     {
         $request->validate([
             'opd_id' => 'required|exists:opd,id',
             'paket_id' => 'required|exists:pakets,id',
+            'durasi' => 'required|in:bulanan,tahunan', // Validasi durasi
         ]);
 
         $paket = Paket::findOrFail($request->paket_id);
         
+        // Tentukan total bayar dan masa aktif
+        $totalBayar = $request->durasi === 'tahunan' ? $paket->harga_tahunan : $paket->harga_bulanan;
+        $masaAktif = $request->durasi === 'tahunan' ? now()->addYear() : now()->addMonth();
+
         Tagihan::create([
             'opd_id' => $request->opd_id,
             'paket_id' => $paket->id,
             'no_invoice' => 'INV-' . date('Ymd') . '-' . rand(100, 999),
-            'total_bayar' => $paket->harga_bulanan,
+            'total_bayar' => $totalBayar,
             'periode_mulai' => now(),
-            'periode_berakhir' => now()->addMonth(),
+            'periode_berakhir' => $masaAktif,
             'status' => 'unpaid'
         ]);
 

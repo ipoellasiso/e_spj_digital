@@ -174,9 +174,9 @@
             @endhasanyrole
 
             <div class="nav-grup">Laporan</div>
-            <a class="nav-tautan {{ $nav === 'bku' ? 'active' : '' }}" href="#" data-tooltip="Buku kas umum"><i class="bi bi-book"></i><span>Buku kas umum</span></a>
-            <a class="nav-tautan {{ $nav === 'realisasi' ? 'active' : '' }}" href="#" data-tooltip="Realisasi anggaran"><i class="bi bi-bar-chart-line"></i><span>Realisasi anggaran</span></a>
-            <a class="nav-tautan {{ $nav === 'pajak' ? 'active' : '' }}" href="#" data-tooltip="Rekap pajak"><i class="bi bi-percent"></i><span>Rekap pajak</span></a>
+                <a class="nav-tautan {{ $nav === 'bku' ? 'active' : '' }}" href="#" data-tooltip="Buku kas umum"><i class="bi bi-book"></i><span>Buku kas umum</span></a>
+                <a class="nav-tautan {{ $nav === 'realisasi' ? 'active' : '' }}" href="#" data-tooltip="Realisasi anggaran"><i class="bi bi-bar-chart-line"></i><span>Realisasi anggaran</span></a>
+                <a class="nav-tautan {{ $nav === 'pajak' ? 'active' : '' }}" href="#" data-tooltip="Rekap pajak"><i class="bi bi-percent"></i><span>Rekap pajak</span></a>
 
             @hasanyrole('superadmin|admin|bendahara')
                 <div class="nav-grup">Data master</div>
@@ -208,6 +208,9 @@
                         <i class="bi bi-box-seam"></i><span>Manajemen Paket</span>
                     </a>
                     <a class="nav-tautan {{ $nav === 'periode' ? 'active' : '' }}" href="#" data-tooltip="Kunci periode"><i class="bi bi-lock"></i><span>Kunci periode</span></a>
+                    <a class="nav-tautan {{ $nav === 'superadmin-pendapatan' ? 'active' : '' }}" href="{{ route('superadmin.pendapatan.index') }}" data-tooltip="Pendapatan">
+                        <i class="bi bi-graph-up-arrow"></i><span>Pendapatan</span>
+                    </a>
                 @endrole
 
                 @hasanyrole('superadmin|admin')
@@ -228,7 +231,7 @@
                     <strong>Butuh bantuan?</strong>
                     <small>Panduan penggunaan e-SPJ</small>
                 </div>
-                <a href="#" class="btn-bantuan">Buka <i class="bi bi-arrow-right-short"></i></a>
+                <a href="{{ route('panduan') }}" class="btn-bantuan">Buka <i class="bi bi-arrow-right-short"></i></a>
             </div>
         </div>
     </aside>

@@ -26,28 +26,42 @@ class SuperadminTagihanController extends Controller
     {
         $tagihan = Tagihan::findOrFail($tagihanId);
         
-        // Jangan verifikasi jika sudah lunas
         if ($tagihan->status === 'paid') {
             return back()->with('error', 'Tagihan ini sudah lunas.');
         }
 
-        // Update status tagihan
+        // 1. Update status tagihan
         $tagihan->update(['status' => 'paid']);
 
-        // Perpanjang masa aktif OPD
+        // 2. Perpanjang masa aktif OPD di tabel 'opd'
         $opd = $tagihan->opd;
         
-        // Logika: Jika tanggal berakhir masih di masa depan, tambahkan dari tanggal tersebut.
-        // Jika sudah expired, hitung mulai dari hari ini.
-        $tanggalMulai = $opd->tanggal_berakhir && $opd->tanggal_berakhir > now() 
-                        ? Carbon::parse($opd->tanggal_berakhir) 
-                        : now();
-                        
-        $opd->update([
-            'tanggal_berakhir' => $tanggalMulai->addMonth(), // Tambah 1 bulan
-            'paket_id' => $tagihan->paket_id
-        ]);
+        // Cek apakah ini tagihan tahunan atau bulanan berdasarkan selisih hari
+        // (Karena di database kita tidak menyimpan kolom 'durasi', kita hitung dari periode)
+        $mulai = \Carbon\Carbon::parse($tagihan->periode_mulai);
+        $berakhir = \Carbon\Carbon::parse($tagihan->periode_berakhir);
+        $durasiHari = $mulai->diffInDays($berakhir); 
 
-        return back()->with('sukses', 'Pembayaran diverifikasi. Masa aktif OPD ' . $opd->nama . ' diperpanjang 1 bulan.');
+        // Tentukan tanggal mulai (jika masih aktif, lanjut dari tanggal berakhir. Jika expired, mulai dari hari ini)
+        $tanggalMulai = $opd->tanggal_berakhir && $opd->tanggal_berakhir > now() 
+                        ? \Carbon\Carbon::parse($opd->tanggal_berakhir) 
+                        : now();
+
+        // 3. Tambahkan masa aktif OPD sesuai durasi tagihan
+        if ($durasiHari > 300) {
+            // Jika lebih dari 300 hari, anggap Tahunan
+            $opd->update([
+                'tanggal_berakhir' => $tanggalMulai->addYear(),
+                'paket_id' => $tagihan->paket_id
+            ]);
+        } else {
+            // Jika kurang dari 300 hari, anggap Bulanan
+            $opd->update([
+                'tanggal_berakhir' => $tanggalMulai->addMonth(),
+                'paket_id' => $tagihan->paket_id
+            ]);
+        }
+
+        return back()->with('sukses', 'Pembayaran diverifikasi. Masa aktif OPD ' . $opd->nama . ' telah diperpanjang.');
     }
 }

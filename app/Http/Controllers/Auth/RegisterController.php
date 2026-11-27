@@ -31,6 +31,7 @@ class RegisterController extends Controller
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
             'paket_id' => 'required|exists:pakets,id',
+            'durasi' => 'required|in:bulanan,tahunan',  
         ]);
 
         DB::beginTransaction();
@@ -56,6 +57,10 @@ class RegisterController extends Controller
 
             // 3. Terbitkan Tagihan Pertama otomatis
             $paket = Paket::findOrFail($request->paket_id);
+
+            // Tentukan total bayar dan masa aktif berdasarkan durasi
+            $totalBayar = $request->durasi === 'tahunan' ? $paket->harga_tahunan : $paket->harga_bulanan;
+            $masaAktif = $request->durasi === 'tahunan' ? now()->addYear() : now()->addMonth();
             
             // --- PERBAIKAN NO INVOICE ---
             // Gunakan format: INV-Ymd-His-Random(3 digit)
@@ -65,10 +70,10 @@ class RegisterController extends Controller
             Tagihan::create([
                 'opd_id' => $opd->id,
                 'paket_id' => $paket->id,
-                'no_invoice' => $noInvoice, // <-- Gunakan variabel yang baru
-                'total_bayar' => $paket->harga_bulanan,
+                'no_invoice' => $noInvoice,
+                'total_bayar' => $totalBayar, // Menggunakan harga sesuai durasi
                 'periode_mulai' => now(),
-                'periode_berakhir' => now()->addMonth(),
+                'periode_berakhir' => $masaAktif, // 1 Bulan atau 1 Tahun
                 'status' => 'unpaid'
             ]);
 

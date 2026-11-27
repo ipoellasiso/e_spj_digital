@@ -19,6 +19,7 @@ use App\Http\Controllers\SpjDokumenController;
 use App\Http\Controllers\SpjPenerimaController;
 use App\Http\Controllers\SpjProsesController;
 use App\Http\Controllers\SuperadminPaketController;
+use App\Http\Controllers\SuperadminPendapatanController;
 use App\Http\Middleware\PeranDiizinkan;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\SuperadminTagihanController;
@@ -45,6 +46,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/billing/{id}/upload', [BillingController::class, 'uploadBukti'])->name('billing.upload');
     // TAMBAHKAN ROUTE INI
     Route::post('/billing/perpanjang', [BillingController::class, 'perpanjang'])->name('billing.perpanjang');
+    Route::get('/billing/{tagihan}/invoice', [BillingController::class, 'cetakInvoice'])->name('billing.invoice');
 });
 
 // ==========================================
@@ -53,6 +55,10 @@ Route::middleware(['auth'])->group(function () {
 Route::middleware(['auth', CekLangganan::class])->group(function () {
     
     Route::get('/beranda', DashboardController::class)->name('dashboard');
+
+    Route::get('/panduan', function () {
+        return view('panduan');
+    })->name('panduan');
 
     // DPA dan sisa pagu
     Route::get('/dpa', [DpaController::class, 'index'])->name('dpa.index');
@@ -161,6 +167,7 @@ Route::middleware(['auth', CekLangganan::class])->group(function () {
         Route::get('/paket', [SuperadminPaketController::class, 'index'])->name('paket.index');
         Route::post('/paket/buat-tagihan', [SuperadminPaketController::class, 'buatTagihan'])->name('paket.buat-tagihan');
         Route::post('/paket', [SuperadminPaketController::class, 'store'])->name('paket.store');
+        Route::get('/pendapatan', [SuperadminPendapatanController::class, 'index'])->name('pendapatan.index');
     });
 
 }); // <-- INI PENUTUP GRUP UTAMA

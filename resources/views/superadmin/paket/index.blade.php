@@ -28,6 +28,11 @@
                         <input type="number" name="harga_bulanan" class="form-control" placeholder="Cth: 500000" required>
                     </div>
                     <div class="mb-3">
+                        <label class="form-label">Harga Tahunan (Rp) <span class="text-muted fw-normal">(Opsional)</span></label>
+                        <input type="number" name="harga_tahunan" class="form-control" placeholder="Cth: 5000000">
+                        <div class="form-text small">Kosongkan jika paket ini tidak memiliki opsi tahunan.</div>
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label">Fitur (Pisahkan dengan koma)</label>
                         <textarea name="fitur" class="form-control" rows="3" placeholder="Cth: Cetak PDF, Import DPA, Prioritas Support" required></textarea>
                     </div>
@@ -55,14 +60,36 @@
                             @endforeach
                         </select>
                     </div>
+                    
+                    {{-- Pilih Paket --}}
                     <div class="mb-3">
-                        <label class="form-label">Pilih Paket Langganan</label>
-                        <select name="paket_id" class="form-select" required>
+                        <label class="form-label">Pilih Paket</label>
+                        <select name="paket_id" id="pilih_paket_tagihan" class="form-select" required>
+                            <option value="" data-harga-bulanan="0" data-harga-tahunan="0">-- Pilih Paket --</option>
                             @foreach($pakets as $p)
-                                <option value="{{ $p->id }}">{{ $p->nama }} - Rp{{ number_format($p->harga_bulanan, 0, ',', '.') }}</option>
+                                <option value="{{ $p->id }}" 
+                                        data-harga-bulanan="{{ $p->harga_bulanan }}" 
+                                        data-harga-tahunan="{{ $p->harga_tahunan }}">
+                                    {{ $p->nama }}
+                                </option>
                             @endforeach
                         </select>
                     </div>
+
+                    {{-- Pilih Durasi --}}
+                    <div class="mb-3">
+                        <label class="form-label">Durasi Tagihan</label>
+                        <select name="durasi" id="pilih_durasi_tagihan" class="form-select" required>
+                            <option value="bulanan">Bulanan (1 Bulan)</option>
+                            <option value="tahunan">Tahunan (12 Bulan)</option>
+                        </select>
+                    </div>
+
+                    {{-- Info Harga Dinamis --}}
+                    <div class="alert alert-info py-2 small" id="info_harga_tagihan">
+                        Total Tagihan: <strong id="text_total_tagihan">Rp0</strong>
+                    </div>
+
                     <button type="submit" class="btn btn-warning w-100 fw-bold">Terbitkan Tagihan</button>
                 </form>
             </div>
@@ -73,11 +100,12 @@
         <div class="col-md-7">
             <div class="card-tabel p-4">
                 <h5 class="fw-bold mb-3">Daftar Paket</h5>
-                <table class="table tabel-modern w-100">
+                                <table class="table tabel-modern w-100">
                     <thead>
                         <tr>
                             <th>Nama Paket</th>
-                            <th>Harga</th>
+                            <th>Harga Bulanan</th>
+                            <th>Harga Tahunan</th>
                             <th>Fitur</th>
                             <th>Populer?</th>
                         </tr>
@@ -88,10 +116,19 @@
                             <td class="fw-bold">{{ $p->nama }}</td>
                             <td>Rp{{ number_format($p->harga_bulanan, 0, ',', '.') }}</td>
                             <td>
+                                @if($p->harga_tahunan)
+                                    Rp{{ number_format($p->harga_tahunan, 0, ',', '.') }}
+                                @else
+                                    <span class="text-muted small">-</span>
+                                @endif
+                            </td>
+                            <td>
                                 <ul class="mb-0 ps-3 small">
-                                    @foreach($p->fitur as $f)
-                                        <li>{{ $f }}</li>
-                                    @endforeach
+                                    @if(is_array($p->fitur))
+                                        @foreach($p->fitur as $f)
+                                            <li>{{ $f }}</li>
+                                        @endforeach
+                                    @endif
                                 </ul>
                             </td>
                             <td>
@@ -103,7 +140,7 @@
                             </td>
                         </tr>
                         @empty
-                        <tr><td colspan="4" class="text-center text-muted">Belum ada paket.</td></tr>
+                        <tr><td colspan="5" class="text-center text-muted py-4">Belum ada paket yang ditambahkan.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -111,4 +148,38 @@
         </div>
     </div>
 </div>
+
+@push('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const selectPaket = document.getElementById('pilih_paket_tagihan');
+        const selectDurasi = document.getElementById('pilih_durasi_tagihan');
+        const textTotal = document.getElementById('text_total_tagihan');
+
+        function updateHarga() {
+            if (!selectPaket || !selectDurasi || !textTotal) return;
+
+            const opt = selectPaket.options[selectPaket.selectedIndex];
+            const hargaBulanan = parseFloat(opt.getAttribute('data-harga-bulanan')) || 0;
+            const hargaTahunan = parseFloat(opt.getAttribute('data-harga-tahunan')) || 0;
+            const durasi = selectDurasi.value;
+
+            let total = 0;
+            if (durasi === 'tahunan') {
+                total = hargaTahunan;
+            } else {
+                total = hargaBulanan;
+            }
+
+            textTotal.innerText = 'Rp' + new Intl.NumberFormat('id-ID').format(total);
+        }
+
+        if (selectPaket) selectPaket.addEventListener('change', updateHarga);
+        if (selectDurasi) selectDurasi.addEventListener('change', updateHarga);
+        
+        // Panggil saat pertama kali load
+        updateHarga();
+    });
+</script>
+@endpush
 @endsection

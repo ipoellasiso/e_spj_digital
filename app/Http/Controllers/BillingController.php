@@ -39,27 +39,38 @@ class BillingController extends Controller
         return view('billing.index', compact('opd', 'tagihanAktif', 'riwayat', 'sisaHari', 'isExpired', 'daftarPaket'));
     }
 
-    // Fungsi untuk Bendahara membuat tagihan perpanjangan sendiri
     public function perpanjang(Request $request)
     {
-        $request->validate(['paket_id' => 'required|exists:pakets,id']);
+        $request->validate([
+            'paket_id' => 'required|exists:pakets,id',
+            'durasi' => 'required|in:bulanan,tahunan', // Pastikan validasi ini ada
+        ]);
         
         $opd = auth()->user()->opd;
         $paket = Paket::findOrFail($request->paket_id);
 
-        // Cek apakah sudah ada tagihan unpaid, jika ada jangan buat lagi
+        // Cek apakah sudah ada tagihan unpaid
         $cekTertunda = Tagihan::where('opd_id', $opd->id)->where('status', 'unpaid')->exists();
         if ($cekTertunda) {
             return back()->with('error', 'Anda masih memiliki tagihan yang belum dibayar.');
+        }
+
+        // Tentukan total bayar dan masa aktif berdasarkan input durasi
+        if ($request->durasi === 'tahunan') {
+            $totalBayar = $paket->harga_tahunan;
+            $masaAktif = now()->addYear(); // Tambah 1 Tahun
+        } else {
+            $totalBayar = $paket->harga_bulanan;
+            $masaAktif = now()->addMonth(); // Tambah 1 Bulan
         }
 
         Tagihan::create([
             'opd_id' => $opd->id,
             'paket_id' => $paket->id,
             'no_invoice' => 'INV-' . date('Ymd') . '-' . rand(100, 999),
-            'total_bayar' => $paket->harga_bulanan,
+            'total_bayar' => $totalBayar,
             'periode_mulai' => now(),
-            'periode_berakhir' => now()->addMonth(),
+            'periode_berakhir' => $masaAktif, // <-- Ini yang akan menyimpan 1 tahun atau 1 bulan
             'status' => 'unpaid'
         ]);
 
@@ -75,5 +86,16 @@ class BillingController extends Controller
         $tagihan->update(['bukti_transfer' => $path]);
 
         return back()->with('sukses', 'Bukti transfer berhasil diunggah. Menunggu verifikasi admin.');
+    }
+    
+    public function cetakInvoice(Tagihan $tagihan)
+    {
+        // Pastikan OPD hanya bisa mencetak tagihannya sendiri
+        if ($tagihan->opd_id !== auth()->user()->opd_id && !auth()->user()->hasRole('superadmin')) {
+            abort(403);
+        }
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('billing.invoice-pdf', compact('tagihan'));
+        return $pdf->download('Invoice-' . $tagihan->no_invoice . '.pdf');
     }
 }

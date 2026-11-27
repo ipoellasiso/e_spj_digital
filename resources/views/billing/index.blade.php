@@ -80,18 +80,48 @@
         {{-- FORM PERPANJANGAN MANDIRI JIKA EXPIRED & TIDAK ADA TAGIHAN AKTIF --}}
         <div class="card-tabel p-4 mb-4 border border-danger" style="background: #fef2f2;">
             <h5 class="fw-bold text-danger mb-3">Buat Tagihan Perpanjangan</h5>
-            <p class="text-secondary small mb-3">Pilih paket langganan yang ingin Anda perpanjang. Sistem akan menerbitkan invoice baru untuk Anda bayar.</p>
-            <form action="{{ route('billing.perpanjang') }}" method="POST" class="d-flex gap-2 align-items-end">
+            <p class="text-secondary small mb-3">Pilih paket dan durasi langganan yang ingin Anda perpanjang. Sistem akan menerbitkan invoice baru.</p>
+            
+            <form action="{{ route('billing.perpanjang') }}" method="POST">
                 @csrf
-                <div style="flex: 1;">
-                    <label class="form-label small fw-bold">Pilih Paket</label>
-                    <select name="paket_id" class="form-select" required>
-                        @foreach($daftarPaket as $p)
-                            <option value="{{ $p->id }}">{{ $p->nama }} - Rp{{ number_format($p->harga_bulanan, 0, ',', '.') }}</option>
-                        @endforeach
-                    </select>
+                                <div class="row g-3 align-items-end">
+                    
+                    {{-- Pilih Paket --}}
+                    <div class="col-md-5">
+                        <label class="form-label small fw-bold">Pilih Paket</label>
+                        <select name="paket_id" id="pilih_paket_billing" class="form-select" required>
+                            <option value="" data-harga-bulanan="0" data-harga-tahunan="0" data-durasi="">-- Pilih Paket --</option>
+                            @foreach($daftarPaket as $p)
+                                <option value="{{ $p->id }}" 
+                                        data-harga-bulanan="{{ $p->harga_bulanan }}" 
+                                        data-harga-tahunan="{{ $p->harga_tahunan }}"
+                                        {{-- Tentukan durasi otomatis di sini. Jika ada harga tahunan, set ke tahunan. Jika tidak, bulanan --}}
+                                        data-durasi="{{ $p->harga_tahunan ? 'tahunan' : 'bulanan' }}">
+                                    {{ $p->nama }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    {{-- Durasi (Readonly) --}}
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">Durasi Tagihan (Otomatis)</label>
+                        <select name="durasi" id="pilih_durasi_billing" class="form-select bg-light" style="pointer-events: none;" readonly required>
+                            <option value="bulanan">Bulanan (1 Bulan)</option>
+                            <option value="tahunan">Tahunan (12 Bulan)</option>
+                        </select>
+                    </div>
+
+                    {{-- Tombol --}}
+                    <div class="col-md-3">
+                        <button type="submit" class="btn btn-danger fw-bold w-100 py-2">Buat Tagihan</button>
+                    </div>
                 </div>
-                <button type="submit" class="btn btn-danger fw-bold px-4 py-2">Buat Tagihan</button>
+                
+                {{-- Info Harga Dinamis --}}
+                <div class="mt-3 small fw-bold text-danger" id="info_harga_billing">
+                    Total yang harus dibayar: <span id="text_total_billing">Rp0</span>
+                </div>
             </form>
         </div>
     @endif
@@ -107,6 +137,7 @@
                     <th>Periode</th>
                     <th>Total</th>
                     <th>Status</th>
+                    <th>Aksi</th>
                 </tr>
             </thead>
             <tbody>
@@ -123,12 +154,55 @@
                             <span class="badge bg-secondary">Expired</span>
                         @endif
                     </td>
+                    <td>
+                        <a href="{{ route('billing.invoice', $r->id) }}" class="btn btn-sm btn-outline-success" target="_blank">
+                            <i class="bi bi-file-pdf"></i> PDF
+                        </a>
+                    </td>
                 </tr>
                 @empty
                 <tr><td colspan="5" class="text-center text-muted">Belum ada riwayat transaksi.</td></tr>
                 @endforelse
+                
             </tbody>
         </table>
     </div>
 </div>
+
+@push('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const selectPaket = document.getElementById('pilih_paket_billing');
+        const selectDurasi = document.getElementById('pilih_durasi_billing');
+        const textTotal = document.getElementById('text_total_billing');
+
+        function updateHargaDanDurasi() {
+            if (!selectPaket || !selectDurasi || !textTotal) return;
+
+            const opt = selectPaket.options[selectPaket.selectedIndex];
+            const hargaBulanan = parseFloat(opt.getAttribute('data-harga-bulanan')) || 0;
+            const hargaTahunan = parseFloat(opt.getAttribute('data-harga-tahunan')) || 0;
+            const durasiOtomatis = opt.getAttribute('data-durasi') || 'bulanan';
+
+            // 1. Set durasi otomatis berdasarkan paket
+            selectDurasi.value = durasiOtomatis;
+
+            // 2. Hitung total harga
+            let total = 0;
+            if (durasiOtomatis === 'tahunan') {
+                total = hargaTahunan;
+            } else {
+                total = hargaBulanan;
+            }
+
+            textTotal.innerText = 'Rp' + new Intl.NumberFormat('id-ID').format(total);
+        }
+
+        if (selectPaket) selectPaket.addEventListener('change', updateHargaDanDurasi);
+        
+        // Panggil saat pertama kali load
+        updateHargaDanDurasi();
+    });
+</script>
+@endpush
 @endsection

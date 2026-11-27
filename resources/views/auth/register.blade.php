@@ -94,14 +94,38 @@
 
         <div class="mb-4">
             <label class="form-label">Pilih Paket Langganan</label>
-            <select name="paket_id" class="form-select" required>
+            <select name="paket_id" id="pilihan_paket" class="form-select" required>
                 <option value="">-- Pilih Paket --</option>
                 @foreach($daftarPaket as $p)
-                    <option value="{{ $p->id }}" {{ old('paket_id', $paket_id) == $p->id ? 'selected' : '' }}>
-                        {{ $p->nama }} - Rp{{ number_format($p->harga_bulanan, 0, ',', '.') }}/bulan
+                    <option value="{{ $p->id }}" 
+                            data-harga-bulanan="{{ $p->harga_bulanan }}" 
+                            data-harga-tahunan="{{ $p->harga_tahunan }}"
+                            {{ old('paket_id', $paket_id) == $p->id ? 'selected' : '' }}>
+                        {{ $p->nama }}
                     </option>
                 @endforeach
             </select>
+        </div>
+
+        {{-- PILIHAN DURASI (BULANAN / TAHUNAN) --}}
+        <div class="mb-4" id="durasi-container" style="display: none;">
+            <label class="form-label">Durasi Pembayaran</label>
+            <div class="d-flex gap-3">
+                <div class="form-check form-check-inline bg-dark bg-opacity-25 p-3 rounded-3 border border-secondary" style="flex: 1;">
+                    <input class="form-check-input" type="radio" name="durasi" id="durasi_bulanan" value="bulanan" checked>
+                    <label class="form-check-label text-white fw-bold" for="durasi_bulanan" style="cursor: pointer;">
+                        Bulanan <br>
+                        <span class="text-success small" id="text_harga_bulanan">Rp0</span>
+                    </label>
+                </div>
+                <div class="form-check form-check-inline bg-dark bg-opacity-25 p-3 rounded-3 border border-secondary" style="flex: 1;" id="opsi_tahunan">
+                    <input class="form-check-input" type="radio" name="durasi" id="durasi_tahunan" value="tahunan">
+                    <label class="form-check-label text-white fw-bold" for="durasi_tahunan" style="cursor: pointer;">
+                        Tahunan <br>
+                        <span class="text-warning small" id="text_harga_tahunan">Rp0</span>
+                    </label>
+                </div>
+            </div>
         </div>
 
         <button type="submit" class="btn-daftar">Daftar & Buat Tagihan</button>
@@ -112,6 +136,41 @@
         <a href="{{ route('login') }}" class="text-decoration-none fw-bold small ms-1" style="color: #34d399;">Masuk di sini</a>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const selectPaket = document.getElementById('pilihan_paket');
+        const containerDurasi = document.getElementById('durasi-container');
+        const opsiTahunan = document.getElementById('opsi_tahunan');
+        const radioBulanan = document.getElementById('durasi_bulanan');
+        const radioTahunan = document.getElementById('durasi_tahunan');
+        const textBulanan = document.getElementById('text_harga_bulanan');
+        const textTahunan = document.getElementById('text_harga_tahunan');
+
+        selectPaket.addEventListener('change', function() {
+            const opt = this.options[this.selectedIndex];
+            const hargaBulanan = opt.getAttribute('data-harga-bulanan');
+            const hargaTahunan = opt.getAttribute('data-harga-tahunan');
+
+            if (this.value) {
+                containerDurasi.style.display = 'block';
+                
+                // Set text harga
+                textBulanan.innerText = 'Rp' + new Intl.NumberFormat('id-ID').format(hargaBulanan) + '/bln';
+                
+                if (hargaTahunan && hargaTahunan !== 'null') {
+                    textTahunan.innerText = 'Rp' + new Intl.NumberFormat('id-ID').format(hargaTahunan) + '/thn';
+                    opsiTahunan.style.display = 'block'; // Tampilkan opsi tahunan
+                } else {
+                    opsiTahunan.style.display = 'none'; // Sembunyikan jika tidak ada
+                    radioBulanan.checked = true;
+                }
+            } else {
+                containerDurasi.style.display = 'none';
+            }
+        });
+    });
+</script>
 
 </body>
 </html>
