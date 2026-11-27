@@ -66,7 +66,7 @@
                         <span class="badge bg-info mb-2">Bukti Transfer Terkirim</span>
                         <p class="small text-secondary mb-0">Menunggu verifikasi Superadmin.</p>
                     @else
-                        <p class="small text-secondary mb-2">Silakan transfer ke:<br><strong>Bank BNI 1234567890</strong><br>a/n e-SPJ Digital</p>
+                        <p class="small text-secondary mb-2">Silakan transfer ke:<br><strong>Bank BNI 778304549</strong><br>a/n Mohammad Iful</p>
                         <form action="{{ route('billing.upload', $tagihanAktif->id) }}" method="POST" enctype="multipart/form-data">
                             @csrf
                             <input type="file" name="bukti" class="form-control form-control-sm mb-2" required>
