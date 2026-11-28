@@ -436,9 +436,17 @@
                         <div class="label">Sub kegiatan</div>
                         <div class="value"><span class="angka">{{ $ar->subKegiatan->kode }}</span> {{ $ar->subKegiatan->uraian }}</div>
                     </div>
-                    <div class="info-item span-2">
+                    {{-- <div class="info-item span-2">
                         <div class="label">Rekening belanja</div>
                         <div class="value"><span class="angka">{{ $ar->rekening->kode }}</span> {{ $ar->rekening->nama }}</div>
+                    </div> --}}
+                    <div class="info-item span-2">
+                        <div class="label">Rekening belanja</div>
+                        @if ($spj->kategori === 'gaji')
+                            <div class="value">{{ $spj->items->count() }} rekening (lihat item belanja)</div>
+                        @else
+                            <div class="value"><span class="angka">{{ $ar->rekening->kode }}</span> {{ $ar->rekening->nama }}</div>
+                        @endif
                     </div>
                     <div class="info-item">
                         <div class="label">Penyedia</div>
@@ -484,6 +492,27 @@
                                 <th class="text-end angka">{{ $rp($spj->items->sum('pajak')) }}</th>
                                 <th class="text-end angka">{{ \App\Support\Uang::rupiah(\App\Support\Uang::sen($spj->total) - \App\Support\Uang::sen($spj->items->sum('pajak'))) }}</th>
                             </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </section>
+            @elseif ($spj->kategori === 'gaji')
+            <section class="panel mb-4 anim-in d3">
+                <div class="panel-kepala"><h2>Item belanja gaji</h2></div>
+                <div class="table-responsive">
+                    <table class="table tabel-keren">
+                        <thead><tr><th>No</th><th>Rekening belanja</th><th class="text-end">Jumlah</th></tr></thead>
+                        <tbody class="angka">
+                        @foreach ($spj->items as $i => $it)
+                            <tr>
+                                <td><span class="no-badge">{{ $i + 1 }}</span></td>
+                                <td>{{ $it->uraian }}</td>
+                                <td class="text-end">{{ $rp($it->jumlah) }}</td>
+                            </tr>
+                        @endforeach
+                        </tbody>
+                        <tfoot>
+                            <tr><th colspan="2" class="text-end">Total</th><th class="text-end angka">{{ $rp($spj->total) }}</th></tr>
                         </tfoot>
                     </table>
                 </div>
@@ -583,40 +612,58 @@
                 </section>
             @endif
 
-            <section class="panel p-4 mb-4 anim-in d3">
-                <h2 class="h6 fw-bold mb-3" style="color:var(--hutan)">Posisi pagu rekening</h2>
-                <div class="angka">
-                    <div class="pagu-row">
-                        <span class="text-secondary">Pagu</span>
-                        <span>{{ $rp($ar->pagu) }}</span>
+            @if ($paguGaji)
+                <section class="panel p-4 mb-4 anim-in d3">
+                    <h2 class="h6 fw-bold mb-3" style="color:var(--hutan)">Posisi pagu per rekening</h2>
+                    <div class="angka small">
+                        @foreach ($paguGaji as $p)
+                            @php $setelahR = $p['sisa'] - ($spj->status->bisaDiubah() ? $p['ini'] : 0); @endphp
+                            <div class="pagu-row {{ $setelahR < 0 ? 'over' : '' }}">
+                                <span>{{ $p['kode'] }}</span>
+                                <span>sisa {{ \App\Support\Uang::rupiah($setelahR) }}</span>
+                            </div>
+                        @endforeach
                     </div>
-                    <div class="pagu-row">
-                        <span class="text-secondary">SPJ final</span>
-                        <span>{{ $rp($ar->realisasi_final) }}</span>
-                    </div>
-                    <div class="pagu-row">
-                        <span class="text-secondary">Dalam proses</span>
-                        <span>{{ $rp($ar->reserved) }}</span>
-                    </div>
-                    <div class="pagu-row total">
-                        <span>Sisa pagu</span>
-                        <span>{{ \App\Support\Uang::rupiah($sisaSen) }}</span>
-                    </div>
-                    @if ($spj->status->bisaDiubah())
-                        <div class="pagu-row mt-2">
-                            <span class="text-secondary">SPJ ini</span>
-                            <span>{{ $rp($spj->total) }}</span>
-                        </div>
-                        <div class="pagu-row {{ $setelah < 0 ? 'over' : '' }} fw-semibold">
-                            <span>Sisa setelah diajukan</span>
-                            <span>{{ \App\Support\Uang::rupiah($setelah) }}</span>
-                        </div>
+                    @if ($spj->status->bisaDiubah() && collect($paguGaji)->contains(fn ($p) => $p['sisa'] - $p['ini'] < 0))
+                        <div class="alert alert-danger py-2 mt-3 mb-0 small">Ada rekening yang melebihi sisa pagu. SPJ ini tidak bisa diajukan.</div>
                     @endif
-                </div>
-                @if ($spj->status->bisaDiubah() && $setelah < 0)
-                    <div class="alert alert-danger py-2 mt-3 mb-0 small">Melebihi sisa pagu. SPJ ini tidak bisa diajukan.</div>
-                @endif
-            </section>
+                </section>
+                @else
+                <section class="panel p-4 mb-4 anim-in d3">
+                    <h2 class="h6 fw-bold mb-3" style="color:var(--hutan)">Posisi pagu rekening</h2>
+                    <div class="angka">
+                        <div class="pagu-row">
+                            <span class="text-secondary">Pagu</span>
+                            <span>{{ $rp($ar->pagu) }}</span>
+                        </div>
+                        <div class="pagu-row">
+                            <span class="text-secondary">SPJ final</span>
+                            <span>{{ $rp($ar->realisasi_final) }}</span>
+                        </div>
+                        <div class="pagu-row">
+                            <span class="text-secondary">Dalam proses</span>
+                            <span>{{ $rp($ar->reserved) }}</span>
+                        </div>
+                        <div class="pagu-row total">
+                            <span>Sisa pagu</span>
+                            <span>{{ \App\Support\Uang::rupiah($sisaSen) }}</span>
+                        </div>
+                        @if ($spj->status->bisaDiubah())
+                            <div class="pagu-row mt-2">
+                                <span class="text-secondary">SPJ ini</span>
+                                <span>{{ $rp($spj->total) }}</span>
+                            </div>
+                            <div class="pagu-row {{ $setelah < 0 ? 'over' : '' }} fw-semibold">
+                                <span>Sisa setelah diajukan</span>
+                                <span>{{ \App\Support\Uang::rupiah($setelah) }}</span>
+                            </div>
+                        @endif
+                    </div>
+                    @if ($spj->status->bisaDiubah() && $setelah < 0)
+                        <div class="alert alert-danger py-2 mt-3 mb-0 small">Melebihi sisa pagu. SPJ ini tidak bisa diajukan.</div>
+                    @endif
+                </section>
+            @endif
 
             <section class="panel p-4 anim-in d4">
                 <h2 class="h6 fw-bold mb-3" style="color:var(--hutan)">Riwayat</h2>

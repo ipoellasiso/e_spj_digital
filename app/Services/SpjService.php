@@ -58,6 +58,7 @@ class SpjService
             }
 
             $spj->items()->createMany(array_map(fn (array $b) => [
+                'anggaran_rekening_id' => $b['anggaran_rekening_id'],
                 'uraian' => $b['uraian'], 'volume' => Uang::format($b['volume_seratus']), 'satuan' => $b['satuan'],
                 'harga_satuan' => Uang::format($b['harga_sen']), 'jumlah' => Uang::format($b['jumlah_sen']),
                 'jabatan' => $b['jabatan'], 'nama_bank' => $b['nama_bank'], 'no_rekening' => $b['no_rekening'],
@@ -143,6 +144,7 @@ class SpjService
                 throw new SpjException("Item {$no}: pajak tidak boleh lebih besar dari honor.");
             }
             $hasil[] = [
+                'anggaran_rekening_id' => $item['anggaran_rekening_id'] ?? null,
                 'uraian' => $uraian, 'satuan' => $satuan, 'volume_seratus' => $volume,
                 'harga_sen' => $harga, 'jumlah_sen' => $jumlah, 'pajak_sen' => $pajak,
                 'jabatan' => ($j = trim((string) ($item['jabatan'] ?? ''))) === '' ? null : $j,

@@ -192,7 +192,7 @@
                 @if ($spj->exists) @method('PUT') @endif
 
                 {{-- PANEL PAGU (DI ATAS) --}}
-                <div class="form-card mb-3" style="border-left: 5px solid #10b981;">
+                <div class="form-card mb-3" id="panel-pagu" style="border-left: 5px solid #10b981;">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <h2 class="mb-0 d-flex align-items-center gap-2">
                             <i class="bi bi-wallet2"></i> Posisi Pagu Rekening
@@ -282,7 +282,7 @@
                                         @endforeach
                                     </select>
                                 </div>
-                                <div class="col-12">
+                                <div class="col-12" id="grup-rekening">
                                     <label for="anggaran_rekening_id" class="form-label">Rekening Belanja</label>
                                     <select id="anggaran_rekening_id" name="anggaran_rekening_id" class="form-select @error('anggaran_rekening_id') is-invalid @enderror" required>
                                         <option value="">-- Pilih Sub Kegiatan Dahulu --</option>
@@ -372,6 +372,35 @@
                                     <th colspan="4" class="text-end py-3 fs-6" style="color:#475569;">TOTAL SPJ</th>
                                     <th class="text-end angka fs-5 text-primary py-3" id="total-spj">Rp0,00</th>
                                     <th></th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                {{-- ITEM BELANJA GAJI --}}
+                <div class="form-card mb-3" id="blok-gaji" hidden>
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 border-bottom pb-2">
+                        <h2 class="mb-0 d-flex align-items-center gap-2"><i class="bi bi-cash-stack"></i> 2. Item Belanja Gaji</h2>
+                        <div class="small text-secondary">Isi nilai per rekening sesuai pengajuan gaji. Kosongkan rekening yang tidak dipakai.</div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table align-middle mb-0" id="tabel-gaji" style="width:100%;">
+                            <thead style="background-color:#f8fafc;">
+                                <tr>
+                                    <th style="width:220px; color:#475569; font-size:0.75rem; text-transform:uppercase; border-bottom:2px solid #e2e8f0;">KODE REKENING</th>
+                                    <th style="min-width:260px; color:#475569; font-size:0.75rem; text-transform:uppercase; border-bottom:2px solid #e2e8f0;">URAIAN</th>
+                                    <th style="width:170px; text-align:right; color:#475569; font-size:0.75rem; text-transform:uppercase; border-bottom:2px solid #e2e8f0;">SISA PAGU</th>
+                                    <th style="width:220px; color:#475569; font-size:0.75rem; text-transform:uppercase; border-bottom:2px solid #e2e8f0;">NILAI (RP)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="gaji-baris">
+                                <tr><td colspan="4" class="text-center text-secondary py-4">Pilih sub kegiatan dahulu.</td></tr>
+                            </tbody>
+                            <tfoot>
+                                <tr style="background-color:#f8fafc; border-top:2px solid #10b981;">
+                                    <th colspan="3" class="text-end py-3 fs-6" style="color:#475569;">TOTAL SPJ</th>
+                                    <th class="text-end angka fs-5 text-primary py-3" id="gaji-total">Rp0,00</th>
                                 </tr>
                             </tfoot>
                         </table>
@@ -618,16 +647,16 @@
                 }
 
                 function aturBlok() {
-                    var h = modeHonor();
-                    blokItem.hidden = h; blokPen.hidden = !h;
-                    [[blokItem, h], [blokPen, !h]].forEach(function (p) {
+                    var h = modeHonor(), g = elKategori.value === 'gaji';
+                    blokItem.hidden = h || g; blokPen.hidden = !h;
+                    [[blokItem, h || g], [blokPen, !h]].forEach(function (p) {
                         p[0].querySelectorAll('input, select, textarea').forEach(function (e) { e.disabled = p[1]; });
                     });
                     document.getElementById('catatan-penyedia').textContent = h ? 'Tidak wajib untuk honorarium.' : '';
                     if (h) {
                         if (!tbody.children.length) { (PENERIMA_AWAL.length ? PENERIMA_AWAL : [{}]).forEach(tambahPenerima); }
                         hitungPenerima();
-                    } else if (window.__spjHitungItem) {
+                    } else if (!g && window.__spjHitungItem) {
                         window.__spjHitungItem();
                     }
                 }
@@ -692,28 +721,112 @@
             // =========================================
             // SCRIPT 3: VALIDASI FRONTEND (SWEETALERT)
             // =========================================
-            document.getElementById('form-spj').addEventListener('submit', function(e) {
+            document.getElementById('form-spj').addEventListener('submit', function (e) {
+                var gaji = document.getElementById('kategori').value === 'gaji';
                 var rekeningEl = document.getElementById('anggaran_rekening_id');
-
-                if (!rekeningEl.value || rekeningEl.value.trim() === '') {
-                    e.preventDefault();
-
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'Rekening Belanja Kosong',
-                        text: 'Silakan pilih Sub Kegiatan dan Rekening Belanja terlebih dahulu sebelum menyimpan draft.',
-                        confirmButtonColor: '#059669',
-                        confirmButtonText: 'Oke, Mengerti',
-                        customClass: {
-                            popup: 'rounded-4',
-                            confirmButton: 'btn-premium'
-                        },
-                        buttonsStyling: false
-                    });
-
-                    rekeningEl.focus();
-                }
+                var kosong = gaji ? !(window.__spjGajiTotal && window.__spjGajiTotal() > 0) : !rekeningEl.value.trim();
+                if (!kosong) return;
+                e.preventDefault();
+                Swal.fire({
+                    icon: 'warning',
+                    title: gaji ? 'Nilai Gaji Belum Diisi' : 'Rekening Belanja Kosong',
+                    text: gaji ? 'Pilih sub kegiatan lalu isi nilai minimal satu rekening.' : 'Silakan pilih Sub Kegiatan dan Rekening Belanja terlebih dahulu sebelum menyimpan draft.',
+                    confirmButtonColor: '#059669', confirmButtonText: 'Oke, Mengerti',
+                    customClass: { popup: 'rounded-4', confirmButton: 'btn-premium' }, buttonsStyling: false
+                });
             });
+
+            // =========================================
+            // SCRIPT 4: SPJ GAJI (rekening otomatis jadi item)
+            // =========================================
+            (function () {
+                var URL_SUB = @json(url('/dpa/sub'));
+                var AWAL = @json((object) $gajiAwal);
+                var elKat = document.getElementById('kategori'), elSub = document.getElementById('sub');
+                var blok = document.getElementById('blok-gaji'), tbody = document.getElementById('gaji-baris');
+                var grupRek = document.getElementById('grup-rekening'), elRek = document.getElementById('anggaran_rekening_id');
+                var panelPagu = document.getElementById('panel-pagu');
+                var dimuat = null;
+
+                function esc(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, function (c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+                function rp(n) { return 'Rp' + new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n); }
+                function angka(s) {
+                    s = String(s || '').replace(/[^\d.,-]/g, '');
+                    if (s.indexOf(',') > -1) s = s.replace(/\./g, '').replace(',', '.');
+                    else if (/^\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, '');
+                    return parseFloat(s) || 0;
+                }
+                function modeGaji() { return elKat.value === 'gaji'; }
+
+                function hitung() {
+                    var total = 0;
+                    tbody.querySelectorAll('tr[data-sisa]').forEach(function (tr) {
+                        var v = angka(tr.querySelector('.g-nilai').value);
+                        var lebih = v > parseFloat(tr.dataset.sisa) + 0.004;
+                        total += v;
+                        tr.querySelector('.g-lebih').hidden = !lebih;
+                    });
+                    document.getElementById('gaji-total').textContent = rp(total);
+                    return total;
+                }
+                window.__spjGajiTotal = hitung;
+
+                function pesan(teks) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="text-center text-secondary py-4">' + esc(teks) + '</td></tr>';
+                    hitung();
+                }
+
+                function muat() {
+                    var sub = elSub.value;
+                    if (!sub) { dimuat = null; return pesan('Pilih sub kegiatan dahulu.'); }
+                    if (dimuat === sub) return;
+                    pesan('Memuat...');
+                    fetch(URL_SUB + '/' + sub + '/rekening', { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
+                        .then(function (r) { return r.json(); })
+                        .then(function (rows) {
+                            dimuat = sub;
+                            if (!rows.length) return pesan('Sub kegiatan ini belum punya rekening belanja.');
+                            tbody.innerHTML = '';
+                            rows.forEach(function (r) {
+                                var sisa = parseFloat(r.pagu) - parseFloat(r.realisasi) - parseFloat(r.reserved);
+                                var nilai = AWAL[r.id] != null ? AWAL[r.id] : '';
+                                var n = 'items[' + r.id + ']';
+                                var tr = document.createElement('tr');
+                                tr.dataset.sisa = sisa;
+                                tr.innerHTML =
+                                    '<td class="angka">' + esc(r.kode) + '</td>' +
+                                    '<td>' + esc(r.nama) + '</td>' +
+                                    '<td class="text-end angka">' + rp(sisa) + '</td>' +
+                                    '<td>' +
+                                        '<input type="hidden" name="' + n + '[anggaran_rekening_id]" value="' + r.id + '">' +
+                                        '<input type="hidden" name="' + n + '[uraian]" value="' + esc(r.kode + ' - ' + r.nama) + '">' +
+                                        '<input type="hidden" name="' + n + '[volume]" value="1">' +
+                                        '<input type="hidden" name="' + n + '[satuan]" value="Bulan">' +
+                                        '<input name="' + n + '[harga_satuan]" class="form-control form-control-sm angka g-nilai text-end" inputmode="decimal" placeholder="0" value="' + esc(nilai) + '">' +
+                                        '<div class="small text-danger g-lebih mt-1" hidden>Melebihi sisa pagu rekening</div>' +
+                                    '</td>';
+                                tbody.appendChild(tr);
+                            });
+                            hitung();
+                        })
+                        .catch(function () { dimuat = null; pesan('Rekening gagal dimuat. Coba pilih ulang sub kegiatan.'); });
+                }
+
+                function atur() {
+                    var g = modeGaji();
+                    blok.hidden = !g;
+                    blok.querySelectorAll('input').forEach(function (e) { e.disabled = !g; });
+                    grupRek.hidden = g; elRek.disabled = g;
+                    panelPagu.hidden = g;
+                    if (g) muat();
+                }
+
+                tbody.addEventListener('input', hitung);
+                elKat.addEventListener('change', atur);
+                elSub.addEventListener('change', function () { dimuat = null; AWAL = {}; if (modeGaji()) muat(); });
+                atur();
+            })();
+
         </script>
     @endpush
 @endif

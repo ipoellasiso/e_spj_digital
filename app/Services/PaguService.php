@@ -81,12 +81,17 @@ class PaguService
     /** @param callable(int,int,int,int): array{0:int,1:int} $hitung menerima pagu, final, reserved, total (sen); mengembalikan [final, reserved] baru */
     private function ubah(Spj $spj, callable $hitung): void
     {
-        DB::transaction(function () use ($spj, $hitung) {
-            $ar = AnggaranRekening::withoutGlobalScopes()->lockForUpdate()->findOrFail($spj->anggaran_rekening_id);
-            [$final, $reserved] = $hitung(
-                Uang::sen($ar->pagu), Uang::sen($ar->realisasi_final), Uang::sen($ar->reserved), Uang::sen($spj->total)
-            );
-            $ar->update(['realisasi_final' => Uang::format($final), 'reserved' => Uang::format($reserved)]);
+        $alokasi = $this->alokasi($spj);
+        ksort($alokasi);
+
+        DB::transaction(function () use ($alokasi, $hitung) {
+            foreach ($alokasi as $arId => $total) {
+                $ar = AnggaranRekening::withoutGlobalScopes()->lockForUpdate()->findOrFail($arId);
+                [$final, $reserved] = $hitung(
+                    Uang::sen($ar->pagu), Uang::sen($ar->realisasi_final), Uang::sen($ar->reserved), $total
+                );
+                $ar->update(['realisasi_final' => Uang::format($final), 'reserved' => Uang::format($reserved)]);
+            }
         });
     }
 
@@ -95,5 +100,30 @@ class PaguService
         if (! $kondisi) {
             throw new LogicException('Data pagu tidak konsisten: ' . $pesan . ' Jalankan rekonsiliasi pagu.');
         }
+    }
+
+    /** Alokasi pagu per rekening (sen): [anggaran_rekening_id => total]. Item tanpa rekening ikut rekening SPJ. */
+    public function alokasi(Spj $spj): array
+    {
+        $hasil = [];
+        foreach ($spj->items()->get(['anggaran_rekening_id', 'jumlah']) as $it) {
+            $id = $it->anggaran_rekening_id ?? $spj->anggaran_rekening_id;
+            $hasil[$id] = ($hasil[$id] ?? 0) + Uang::sen($it->jumlah);
+        }
+
+        return $hasil ?: [$spj->anggaran_rekening_id => Uang::sen($spj->total)];
+    }
+
+    /** Posisi pagu tiap rekening yang dipakai SPJ, untuk halaman show. */
+    public function posisi(Spj $spj): array
+    {
+        $alokasi = $this->alokasi($spj);
+
+        return AnggaranRekening::withoutGlobalScopes()->with('rekening')->whereIn('id', array_keys($alokasi))->get()
+            ->sortBy(fn ($r) => $r->rekening->kode)
+            ->map(fn ($ar) => [
+                'kode' => $ar->rekening->kode, 'nama' => $ar->rekening->nama,
+                'pagu' => Uang::sen($ar->pagu), 'sisa' => $this->sisaSen($ar), 'ini' => $alokasi[$ar->id],
+            ])->values()->all();
     }
 }

@@ -105,6 +105,7 @@ class SpjController extends Controller
             
             // WAJIB: Tambahkan 'nomor_spm' ke rawColumns karena kita merender HTML (input)
             ->rawColumns(['status', 'aksi', 'nomor_spm'])
+            ->addColumn('rekening', fn (Spj $s) => $s->kategori === 'gaji' ? 'Gaji (banyak rekening)' : $s->anggaranRekening?->rekening?->kode)
             ->toJson();
     }
 
@@ -140,6 +141,7 @@ class SpjController extends Controller
             'pejabat' => PejabatOpd::withoutGlobalScopes()->whereIn('id', $ids)->get()->keyBy('id'),
             'sisaSen' => $this->pagu->sisaSen($ar),
             'bolehKelola' => $spj->status->bisaDiubah() && $this->bolehKelola($me, $spj),
+            'paguGaji' => $spj->kategori === 'gaji' ? $this->pagu->posisi($spj) : null,
         ]);
     }
 
@@ -279,6 +281,19 @@ class SpjController extends Controller
                 'uraian' => $i->uraian, 'volume' => Uang::isianVolume($i->volume), 'satuan' => $i->satuan, 'harga_satuan' => Uang::isianHarga($i->harga_satuan),
             ])->all()
             : [['uraian' => '', 'volume' => '1', 'satuan' => '', 'harga_satuan' => '']];
+        
+        $gajiAwal = [];
+            if (old('items')) {
+                foreach ((array) old('items') as $it) {
+                    if (! empty($it['anggaran_rekening_id'])) {
+                        $gajiAwal[$it['anggaran_rekening_id']] = $it['harga_satuan'] ?? '';
+                    }
+                }
+            } elseif ($spj->exists && $spj->kategori === 'gaji') {
+                foreach ($spj->items as $i) {
+                    $gajiAwal[$i->anggaran_rekening_id] = Uang::isianHarga($i->harga_satuan);
+                }
+            }
 
         return view('spj.form', [
             'spj' => $spj, 'tahun' => $tahun, 'versi' => $versi, 'sub' => $sub,
@@ -288,26 +303,37 @@ class SpjController extends Controller
             'penyedia' => Penyedia::where('opd_id', $me->opd_id)->orderBy('nama')->get(['id', 'nama']),
             'pilihanPejabat' => $pilihan,
             'items' => old('items', $items),
+            'gajiAwal' => $gajiAwal,
         ]);
     }
 
-    /** @return array{0: array, 1: array} data SPJ dan item mentah (belum dihitung) */
     private function validasi(Request $request, ?Spj $spj): array
     {
         $me = $request->user();
         abort_unless($me->opd_id, 403, 'Akun Anda belum terhubung ke OPD.');
         $opdId = $me->opd_id;
+        $gaji = $request->input('kategori') === 'gaji';
+
+        if ($gaji) {
+            // rekening yang nilainya dikosongkan dibuang
+            $request->merge(['items' => collect((array) $request->input('items'))
+                ->filter(fn ($i) => (Uang::dariInput((string) ($i['harga_satuan'] ?? '')) ?? 0) > 0)
+                ->all()]);
+        }
 
         $aturan = [
             'jenis' => ['required', Rule::in(array_keys(Spj::JENIS))],
             'tanggal' => ['required', 'date'],
-            // 'anggaran_rekening_id' => ['required', Rule::exists('anggaran_rekening', 'id')->where('opd_id', $opdId)],
-            // 'anggaran_rekening_id' => ['required', 'exists:anggaran_rekening,id'],
-            'anggaran_rekening_id' => ['required', Rule::exists('anggaran_rekening', 'id')->where('opd_id', $opdId)],
+            'anggaran_rekening_id' => $gaji
+                ? ['nullable']
+                : ['required', Rule::exists('anggaran_rekening', 'id')->where('opd_id', $opdId)],
             'sumber_dana_id' => ['required', 'exists:sumber_dana,id'],
             'uraian' => ['required', 'string', 'max:500'],
             'penyedia_id' => ['nullable', Rule::exists('penyedia', 'id')->where('opd_id', $opdId)],
             'items' => ['required', 'array', 'min:1'],
+            'items.*.anggaran_rekening_id' => $gaji
+                ? ['required', 'distinct', Rule::exists('anggaran_rekening', 'id')->where('opd_id', $opdId)]
+                : ['nullable'],
             'items.*.uraian' => ['required', 'string', 'max:255'],
             'items.*.volume' => ['required', 'string', 'max:20'],
             'items.*.satuan' => ['required', 'string', 'max:30'],
@@ -316,7 +342,6 @@ class SpjController extends Controller
             'items.*.nama_bank' => ['nullable', 'string', 'max:100'],
             'items.*.no_rekening' => ['nullable', 'string', 'max:50'],
             'items.*.pajak' => ['nullable', 'string', 'max:30'],
-            // 'jenis_pengeluaran' => ['required', Rule::in(['pihak_ketiga', 'honor', 'gaji', 'belanja_modal'])],
             'kategori' => ['required', Rule::in(array_keys(Spj::KATEGORI))],
         ];
         $atribut = [
@@ -330,8 +355,9 @@ class SpjController extends Controller
             $atribut[$kolom] = $label;
         }
 
+        $pesanItem = $gaji ? 'Isi nilai gaji minimal satu rekening.' : 'Isi minimal satu item belanja.';
         $data = $request->validate($aturan, PesanValidasi::UMUM + [
-            'items.min' => 'Isi minimal satu item belanja.', 'items.required' => 'Isi minimal satu item belanja.',
+            'items.min' => $pesanItem, 'items.required' => $pesanItem,
         ], $atribut);
 
         $galat = [];
@@ -342,28 +368,42 @@ class SpjController extends Controller
                 $galat["items.$i.volume"] = 'Volume harus angka lebih dari 0 (maksimal 2 desimal).';
             }
             if ($harga === null || $harga <= 0) {
-                $galat["items.$i.harga_satuan"] = 'Harga satuan harus angka lebih dari 0.';
+                $galat["items.$i.harga_satuan"] = 'Nilai harus angka lebih dari 0.';
             }
         }
 
-        $ar = AnggaranRekening::with('subKegiatan:id,kode')->find($data['anggaran_rekening_id']);
-        $versi = $ar ? DpaVersi::withoutGlobalScopes()->find($ar->dpa_versi_id) : null;
+        $rekIds = $gaji ? array_column($data['items'], 'anggaran_rekening_id') : [$data['anggaran_rekening_id']];
+        $daftar = AnggaranRekening::with('subKegiatan:id,kode')->whereIn('id', $rekIds)->get();
+        $kunci = $gaji ? 'items' : 'anggaran_rekening_id';
+        $versiIds = $daftar->pluck('dpa_versi_id')->unique();
+        $versi = $versiIds->count() === 1 ? DpaVersi::withoutGlobalScopes()->find($versiIds->first()) : null;
+
         if (! $versi || ! $versi->aktif) {
-            $galat['anggaran_rekening_id'] = 'Rekening ini bukan bagian dari DPA aktif.';
+            $galat[$kunci] = 'Rekening ini bukan bagian dari DPA aktif.';
         } else {
             $batas = AksesSubKegiatan::batasan($me, $versi->tahun);
-            if ($batas !== null && ! in_array($ar->subKegiatan->kode, $batas, true)) {
-                $galat['anggaran_rekening_id'] = 'Rekening ini bukan dari sub kegiatan yang ditugaskan kepada Anda.';
+            foreach ($daftar as $ar) {
+                if ($batas !== null && ! in_array($ar->subKegiatan->kode, $batas, true)) {
+                    $galat[$kunci] = 'Rekening ini bukan dari sub kegiatan yang ditugaskan kepada Anda.';
+                    break;
+                }
+            }
+            if ($gaji && $daftar->pluck('sub_kegiatan_id')->unique()->count() > 1) {
+                $galat['items'] = 'Rekening gaji harus berasal dari satu sub kegiatan.';
             }
             if (Carbon::parse($data['tanggal'])->year !== (int) $versi->tahun) {
                 $galat['tanggal'] = "Tanggal harus berada di tahun anggaran {$versi->tahun}.";
             }
             if ($spj && (int) $spj->tahun !== (int) $versi->tahun) {
-                $galat['anggaran_rekening_id'] = 'Rekening harus dari tahun anggaran yang sama dengan SPJ ini.';
+                $galat[$kunci] = 'Rekening harus dari tahun anggaran yang sama dengan SPJ ini.';
             }
         }
         if ($galat) {
             throw ValidationException::withMessages($galat);
+        }
+
+        if ($gaji) {
+            $data['anggaran_rekening_id'] = collect($data['items'])->first()['anggaran_rekening_id']; // jangkar
         }
 
         $items = $data['items'];
