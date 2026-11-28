@@ -56,6 +56,8 @@ class SpjController extends Controller
             'urutAwal' => 1, 'urutArah' => 'desc',
             'kolom' => [
                 ['data' => 'nomor_urut', 'judul' => 'Nomor', 'kelas' => 'angka'],
+                // Tambahkan di dalam array 'kolom' setelah 'nomor_urut'
+                ['data' => 'nomor_spm', 'judul' => 'Nomor SPM', 'cari' => false],
                 ['data' => 'tanggal', 'judul' => 'Tanggal', 'cari' => false],
                 ['data' => 'uraian', 'judul' => 'Uraian'],
                 ['data' => 'rekening', 'judul' => 'Rekening', 'kelas' => 'angka', 'cari' => false, 'urut' => false],
@@ -75,14 +77,34 @@ class SpjController extends Controller
             ->when($status, fn ($q) => $q->where('spj.status', $status->value))
             ->when($batas !== null, fn ($q) => $q->whereHas('anggaranRekening.subKegiatan', fn ($s) => $s->whereIn('kode', $batas)));
 
+        // Cek apakah user boleh edit (Bendahara/PPTK)
+        $bolehEdit = $request->user()->hasAnyRole(['bendahara', 'pptk']);
+
         return DataTables::eloquent($query)
             ->editColumn('nomor_urut', fn (Spj $s) => $s->nomor ?? '-')
+            
+            // --- KOLOM INPUT SPM INLINE ---
+            ->editColumn('nomor_spm', function (Spj $s) use ($bolehEdit) {
+                if ($bolehEdit) {
+                    // Render Input text. Class 'input-spm' digunakan untuk trigger AJAX
+                    return '<input type="text" class="form-control form-control-sm input-spm" 
+                                data-id="'.$s->id.'" 
+                                value="'.e($s->nomor_spm).'" 
+                                placeholder="Ketik SPM...">';
+                }
+                // Jika role lain (misal PA), hanya bisa lihat
+                return $s->nomor_spm ? '<span class="badge bg-success">'.e($s->nomor_spm).'</span>' : '-';
+            })
+            // -------------------------------
+
             ->editColumn('tanggal', fn (Spj $s) => $s->tanggal->format('d/m/Y'))
             ->addColumn('rekening', fn (Spj $s) => $s->anggaranRekening?->rekening?->kode)
             ->editColumn('total', fn (Spj $s) => Uang::rupiah(Uang::sen($s->total)))
             ->editColumn('status', fn (Spj $s) => '<span class="st ' . $s->status->badge() . '">' . e($s->status->label()) . '</span>')
             ->addColumn('aksi', fn (Spj $s) => '<a href="' . e(route('spj.show', $s)) . '" class="btn btn-sm btn-outline-daun">Buka</a>')
-            ->rawColumns(['status', 'aksi'])
+            
+            // WAJIB: Tambahkan 'nomor_spm' ke rawColumns karena kita merender HTML (input)
+            ->rawColumns(['status', 'aksi', 'nomor_spm'])
             ->toJson();
     }
 
@@ -169,6 +191,20 @@ class SpjController extends Controller
         }
 
         return redirect()->route('spj.index')->with('sukses', 'Draft SPJ dihapus.');
+    }
+
+    public function updateSpm(Request $request, Spj $spj): JsonResponse
+    {
+        abort_unless($request->user()->hasAnyRole(['bendahara', 'pptk']), 403);
+        
+        $request->validate(['nomor_spm' => ['nullable', 'string', 'max:100']]);
+        $spj->update(['nomor_spm' => $request->nomor_spm]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Nomor SPM tersimpan.',
+            'nomor_spm' => $spj->nomor_spm
+        ]);
     }
 
     // ---------------------------------------------------------------- akses

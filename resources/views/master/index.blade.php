@@ -447,6 +447,68 @@
             $('#edit_p_rekening').val($(this).data('rekening_bank'));
             new bootstrap.Modal(document.getElementById('modalEditPenyedia')).show();
         });
+
+        // --- SCRIPT INLINE EDIT NOMOR SPM ---
+        $(document).on('change', '.input-spm', function() {
+            var input = $(this);
+            var id = input.data('id');
+            var nomorSpm = input.val();
+            var oldVal = input.data('old') || '';
+            
+            // Jika tidak ada perubahan, abaikan
+            if (nomorSpm === oldVal) return;
+
+            // Tampilkan efek loading kecil pada input
+            input.prop('disabled', true).addClass('bg-light');
+            
+            // Simpan nilai lama untuk jaga-jaga jika gagal
+            input.data('old', nomorSpm);
+
+            $.ajax({
+                url: "{{ route('spj.spm.update', ':id') }}".replace(':id', id),
+                type: 'POST',
+                data: {
+                    _token: "{{ csrf_token() }}",
+                    _method: 'PUT', // Laravel method spoofing
+                    nomor_spm: nomorSpm
+                },
+                success: function(response) {
+                    input.prop('disabled', false).removeClass('bg-light');
+                    
+                    // Efek sukses (border hijau sekejap)
+                    input.addClass('is-valid border-success');
+                    setTimeout(function() {
+                        input.removeClass('is-valid border-success');
+                    }, 2000);
+
+                    // Tampilkan Toast mini (bisa pakai SweetAlert Toast)
+                    const Toast = Swal.mixin({
+                        toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, timerProgressBar: true
+                    });
+                    Toast.fire({ icon: 'success', title: 'SPM Tersimpan' });
+                },
+                error: function(xhr) {
+                    input.prop('disabled', false).removeClass('bg-light');
+                    
+                    // Kembalikan nilai lama jika error
+                    input.val(oldVal);
+                    
+                    Swal.fire('Gagal', xhr.responseJSON?.message || 'Terjadi kesalahan sistem.', 'error');
+                }
+            });
+        });
+
+        // Simpan nilai lama saat input pertama kali diklik
+        $(document).on('focus', '.input-spm', function() {
+            $(this).data('old', $(this).val());
+        });
+
+        // Tambahkan CSS border saat input aktif agar lebih rapi
+        $(document).on('keypress', '.input-spm', function(e) {
+            if (e.which == 13) { // Jika tekan Enter
+                $(this).blur(); // Trigger event 'change'
+            }
+        });
     </script>
 @endpush
 

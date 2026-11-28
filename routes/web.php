@@ -103,6 +103,7 @@ Route::middleware(['auth', CekLangganan::class])->group(function () {
         Route::get('/{spj}', [\App\Http\Controllers\SpjController::class, 'show'])->name('show');
         Route::post('/{spj}/ajukan', [\App\Http\Controllers\SpjController::class, 'ajukan'])->name('ajukan');
         Route::get('/{spj}/cetak', [\App\Http\Controllers\SpjController::class, 'cetak'])->name('cetak');
+        Route::put('/{spj}/spm', [\App\Http\Controllers\SpjController::class, 'updateSpm'])->name('spm.update');
     });
 
     Route::middleware(PeranDiizinkan::class . ':bendahara,ppk_skpd,pa')->group(function () {
@@ -118,6 +119,22 @@ Route::middleware(['auth', CekLangganan::class])->group(function () {
         Route::get('/{opd}/ubah', [OpdController::class, 'edit'])->name('edit');
         Route::put('/{opd}', [OpdController::class, 'update'])->name('update');
         Route::delete('/{opd}', [OpdController::class, 'destroy'])->name('destroy');
+    });
+
+    Route::prefix('laporan')->name('laporan.')->group(function () {
+        Route::get('/bku', [\App\Http\Controllers\LaporanController::class, 'bku'])->name('bku');
+        Route::get('/bku/data', [\App\Http\Controllers\LaporanController::class, 'bkuData'])->name('bku.data');
+        Route::get('/bku/excel', [\App\Http\Controllers\LaporanController::class, 'bkuExcel'])->name('bku.excel');
+        Route::get('/bku/pdf', [\App\Http\Controllers\LaporanController::class, 'bkuPdf'])->name('bku.pdf');
+        
+        Route::get('/realisasi', [\App\Http\Controllers\LaporanController::class, 'realisasi'])->name('realisasi');
+        Route::get('/realisasi/excel', [\App\Http\Controllers\LaporanController::class, 'realisasiExcel'])->name('realisasi.excel');
+        Route::get('/realisasi/pdf', [\App\Http\Controllers\LaporanController::class, 'realisasiPdf'])->name('realisasi.pdf');
+        
+        // --- UBAH BAGIAN INI BANG ---
+        Route::get('/realisasi-sumber-dana', [\App\Http\Controllers\LaporanController::class, 'realisasiSumberDana'])->name('realisasi-sumber-dana');
+        Route::get('/realisasi-sumber-dana/excel', [\App\Http\Controllers\LaporanController::class, 'realisasiSumberDanaExcel'])->name('realisasi-sumber-dana.excel');
+        Route::get('/realisasi-sumber-dana/pdf', [\App\Http\Controllers\LaporanController::class, 'realisasiSumberDanaPdf'])->name('realisasi-sumber-dana.pdf');
     });
 
     // Pengguna
@@ -169,5 +186,13 @@ Route::middleware(['auth', CekLangganan::class])->group(function () {
         Route::post('/paket', [SuperadminPaketController::class, 'store'])->name('paket.store');
         Route::get('/pendapatan', [SuperadminPendapatanController::class, 'index'])->name('pendapatan.index');
     });
+
+    // Rekap SPJ
+    Route::middleware(PeranDiizinkan::class . ':superadmin,admin,bendahara,pptk,ppk_skpd,pa')
+        ->prefix('laporan/spj')->name('spj.rekap.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\SpjRekapController::class, 'index'])->name('index');
+            Route::get('/detail', [\App\Http\Controllers\SpjRekapController::class, 'detail'])->name('detail');
+            Route::get('/ekspor', [\App\Http\Controllers\SpjRekapController::class, 'ekspor'])->name('ekspor');
+        });
 
 }); // <-- INI PENUTUP GRUP UTAMA

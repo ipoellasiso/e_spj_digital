@@ -174,8 +174,32 @@
             @endhasanyrole
 
             <div class="nav-grup">Laporan</div>
-                <a class="nav-tautan {{ $nav === 'bku' ? 'active' : '' }}" href="#" data-tooltip="Buku kas umum"><i class="bi bi-book"></i><span>Buku kas umum</span></a>
-                <a class="nav-tautan {{ $nav === 'realisasi' ? 'active' : '' }}" href="#" data-tooltip="Realisasi anggaran"><i class="bi bi-bar-chart-line"></i><span>Realisasi anggaran</span></a>
+                <a class="nav-tautan {{ $nav === 'bku' ? 'active' : '' }}" href="{{ route('laporan.bku') }}" data-tooltip="Buku kas umum"><i class="bi bi-book"></i><span>Buku kas umum</span></a>
+                <a class="nav-tautan {{ $nav === 'spj-rekap' ? 'active' : '' }}" href="{{ route('spj.rekap.index') }}" data-tooltip="Rekapan SPJ">
+                    <i class="bi bi-file-earmark-bar-graph"></i><span>Rekapan SPJ</span>
+                </a>
+                {{-- MENU REALISASI (Collapse/Sub-menu) --}}
+                <a class="nav-tautan {{ $nav === 'realisasi' || $nav === 'realisasi-dana' ? '' : 'collapsed' }}" 
+                data-bs-toggle="collapse" 
+                href="#menuRealisasi" 
+                role="button" 
+                aria-expanded="{{ $nav === 'realisasi' || $nav === 'realisasi-dana' ? 'true' : 'false' }}" 
+                aria-controls="menuRealisasi">
+                    <i class="bi bi-bar-chart-line"></i>
+                    <span>Realisasi Anggaran</span>
+                    <i class="bi bi-chevron-down ms-auto" style="font-size: 0.7rem; transition: transform 0.3s;" id="iconRealisasi"></i>
+                </a>
+                
+                <div class="collapse {{ $nav === 'realisasi' || $nav === 'realisasi-dana' ? 'show' : '' }}" id="menuRealisasi">
+                    <div class="ms-4 ps-2 border-start" style="border-color: rgba(255,255,255,0.2) !important;">
+                        <a class="nav-tautan {{ $nav === 'realisasi' ? 'active' : '' }} py-2" href="{{ route('laporan.realisasi') }}">
+                            <i class="bi bi-diagram-3"></i><span>Per Program</span>
+                        </a>
+                        <a class="nav-tautan {{ $nav === 'realisasi-dana' ? 'active' : '' }} py-2" href="{{ route('laporan.realisasi-sumber-dana') }}">
+                            <i class="bi bi-wallet2"></i><span>Per Sumber Dana</span>
+                        </a>
+                    </div>
+                </div>
                 <a class="nav-tautan {{ $nav === 'pajak' ? 'active' : '' }}" href="#" data-tooltip="Rekap pajak"><i class="bi bi-percent"></i><span>Rekap pajak</span></a>
 
             @hasanyrole('superadmin|admin|bendahara')
@@ -412,6 +436,25 @@
             toastEl.addEventListener('hidden.bs.toast', function () {
                 toastEl.remove();
             });
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        var menuRealisasi = document.getElementById('menuRealisasi');
+        var icon = document.getElementById('iconRealisasi');
+        
+        if (menuRealisasi && icon) {
+            menuRealisasi.addEventListener('show.bs.collapse', function () {
+                icon.style.transform = 'rotate(180deg)';
+            });
+            menuRealisasi.addEventListener('hide.bs.collapse', function () {
+                icon.style.transform = 'rotate(0deg)';
+            });
+            
+            // Set rotasi awal jika sedang terbuka
+            if (menuRealisasi.classList.contains('show')) {
+                icon.style.transform = 'rotate(180deg)';
+            }
         }
     });
 </script>

@@ -1348,3 +1348,24 @@ body {
     color: #fff !important;
     box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3) !important;
 }
+
+/* Styling Input SPM di dalam Tabel */
+.input-spm {
+    background-color: #f8fafc;
+    border: 1px dashed #cbd5e1;
+    transition: all 0.2s ease;
+    min-width: 120px;
+}
+.input-spm:focus {
+    background-color: #ffffff;
+    border: 1px solid var(--hijau-500, #10b981);
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+}
+.input-spm:disabled {
+    cursor: wait;
+    opacity: 0.6;
+}
+/* Menghilangkan garis tabel ganda */
+.tabel-modern td .input-spm {
+    margin-bottom: 0;
+}
