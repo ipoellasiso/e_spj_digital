@@ -218,7 +218,8 @@ class DokumenSpjService
             'terbilang' => Terbilang::rupiah($totalSen),
             'tanggal_panjang' => TanggalIndo::panjang($tgl), 'tanggal_kata' => TanggalIndo::kata($tgl),
             'uraian' => $spj->uraian,
-            'logo' => $this->logoDataUri($s['opd']['logo_path'] ?? null),
+            // 'logo' => $this->logoDataUri($s['opd']['logo_path'] ?? null),
+            'logo' => $this->logoDataUri($spj->opd?->logo_path ?: ($s['opd']['logo_path'] ?? null)),
             'titik' => '..............................',
         ];
     }
